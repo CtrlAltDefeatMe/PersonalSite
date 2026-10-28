@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="759" height="558" viewBox="248 343 759 558" role="img" aria-labelledby="title desc">
+  <title id="title">Thomas Herr TH monogram</title>
+  <desc id="desc">Geometric TH monogram reconstructed from the supplied raster reference. Muted steel blue T and dark slate navy H. Straight edges, square corners and two open joins. Solid colour reconstruction, not a pixel-exact copy of the raster texture.</desc>
+  <!-- Construction units: logo 759 x 558; T cap 597 x 99; T stem width 125; H upright width 139; H crossbar height 109; upper gap 23; middle gap 21. -->
+  <defs><linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#587caa"/><stop offset="1" stop-color="#42628c"/></linearGradient><linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2e4268"/><stop offset="1" stop-color="#233351"/></linearGradient></defs><path id="T" fill="url(#steel)" d="M 248,343 H 845 L 744,442 H 577 V 901 H 452 V 442 H 248 Z"/>
+  <path id="H" fill="url(#navy)" d="M 868,343 H 1007 V 901 H 868 V 666 H 598 V 557 H 868 Z"/>
+</svg>
