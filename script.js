@@ -156,7 +156,7 @@
     background.style.opacity = '1';
     overlay.hidden = false;
     // A failed asset or interrupted animation must never leave the page covered.
-    safeguard = setTimeout(() => finishIntro('skipped'), 7500);
+    safeguard = setTimeout(() => finishIntro('skipped'), 10000);
     try {
       await imageReady(banner);
       if (!active) return;
@@ -169,9 +169,9 @@
       const travelY = (viewportHeight / 2 + markHeight * startScale) * unitsPerPixel;
       const flights = {
         't-cap': { x: -viewportWidth * 0.12 * unitsPerPixel, y: -travelY, rotation: -330, delay: 0 },
-        't-stem': { x: -travelX, y: viewportHeight * 0.1 * unitsPerPixel, rotation: 405, delay: 100 },
-        'h-crossbar': { x: viewportWidth * 0.08 * unitsPerPixel, y: travelY, rotation: -390, delay: 200 },
-        'h-upright': { x: travelX, y: -viewportHeight * 0.12 * unitsPerPixel, rotation: 345, delay: 300 }
+        't-stem': { x: -travelX, y: viewportHeight * 0.1 * unitsPerPixel, rotation: 405, delay: 200 },
+        'h-crossbar': { x: viewportWidth * 0.08 * unitsPerPixel, y: travelY, rotation: -390, delay: 400 },
+        'h-upright': { x: travelX, y: -viewportHeight * 0.12 * unitsPerPixel, rotation: 345, delay: 600 }
       };
       root.dataset.introState = 'tumbling';
       await Promise.all(bars.map(bar => {
@@ -184,7 +184,7 @@
           { transform: transform(-flight.x * 0.012, -flight.y * 0.012, -Math.sign(flight.rotation) * 7, 1.015), opacity: 1, offset: 0.78 },
           { transform: transform(flight.x * 0.003, flight.y * 0.003, Math.sign(flight.rotation) * 2), opacity: 1, offset: 0.91 },
           { transform: transform(0, 0, 0), opacity: 1, offset: 1 }
-        ], { duration: 1450, delay: flight.delay, easing: 'cubic-bezier(.22,.65,.28,1)' });
+        ], { duration: 2900, delay: flight.delay, easing: 'cubic-bezier(.22,.65,.28,1)' });
       }));
       if (!active) return;
       root.dataset.introState = 'assembled';
