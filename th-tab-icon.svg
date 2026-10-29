@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="210 204.5 835 835"><title>TH</title><rect x="210" y="204.5" width="835" height="835" rx="128" fill="#d4e8fa" /><defs>
+    <linearGradient id="steel" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(248 343) scale(597 558)">
+      <stop stop-color="#587caa" /><stop offset="1" stop-color="#42628c" />
+    </linearGradient>
+    <linearGradient id="navy" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(598 343) scale(409 558)">
+      <stop stop-color="#2e4268" /><stop offset="1" stop-color="#233351" />
+    </linearGradient>
+  </defs>
+  <path fill="url(#steel)" d="M 248,343 H 845 L 744,442 H 248 Z" /><path fill="url(#steel)" d="M 452,442 H 577 V 901 H 452 Z" /><path fill="url(#navy)" d="M 598,557 H 868 V 666 H 598 Z" /><path fill="url(#navy)" d="M 868,343 H 1007 V 901 H 868 Z" /></svg>
