@@ -40,6 +40,7 @@
   const root = document.documentElement;
   const overlay = document.querySelector('#intro-overlay');
   const mark = document.querySelector('#intro-mark');
+  const bars = mark ? [...mark.querySelectorAll('.intro-bar')] : [];
   const background = overlay?.querySelector('.intro-background');
   const skip = document.querySelector('#skip-intro');
   const content = document.querySelector('#site-content');
@@ -133,7 +134,10 @@
   }
 
   async function playIntro() {
-    if (!overlay || !mark || !background || !skip || !content || !banner || !target) return;
+    if (!overlay || !mark || !background || !skip || !content || !banner || !target || bars.length !== 4) {
+      root.dataset.introState = 'skipped';
+      return;
+    }
     if (reducedMotion.matches || (location.hash && location.hash !== '#top') || !mark.animate) {
       root.dataset.introState = 'skipped';
       return;
@@ -145,41 +149,59 @@
     document.body.classList.add('intro-active');
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const startScale = Math.min(160, viewportWidth * 0.42) / markWidth;
+    const startScale = Math.min(360, viewportWidth * 0.62) / markWidth;
     const transformAtCenter = scale => `translate(${(viewportWidth - markWidth * scale) / 2}px, ${(viewportHeight - markHeight * scale) / 2}px) scale(${scale})`;
     const startTransform = transformAtCenter(startScale);
     Object.assign(mark.style, { width: `${markWidth}px`, height: `${markHeight}px`, transform: startTransform, opacity: '1' });
     background.style.opacity = '1';
     overlay.hidden = false;
     // A failed asset or interrupted animation must never leave the page covered.
-    safeguard = setTimeout(() => finishIntro('skipped'), 6500);
+    safeguard = setTimeout(() => finishIntro('skipped'), 7500);
     try {
-      await Promise.all([imageReady(banner), imageReady(mark)]);
+      await imageReady(banner);
       if (!active) return;
       const destination = logoRect();
       if (!destination) throw new Error('Banner has no visible size');
-      const coverScale = Math.max(viewportWidth / markWidth, viewportHeight / markHeight) * 1.6;
-      const expandedTransform = transformAtCenter(coverScale);
-      root.dataset.introState = 'expanding';
-      await animate(mark, [
-        { transform: startTransform, offset: 0 },
-        { transform: startTransform, offset: 0.06 },
-        { transform: expandedTransform, offset: 0.94 },
-        { transform: expandedTransform, offset: 1 }
-      ], { duration: 1150, easing: 'cubic-bezier(.58,0,.24,1)' });
+      // SVG translations use viewBox units; convert viewport distances so every
+      // bar begins beyond its own edge on both phones and larger screens.
+      const unitsPerPixel = 759 / (markWidth * startScale);
+      const travelX = (viewportWidth / 2 + markWidth * startScale) * unitsPerPixel;
+      const travelY = (viewportHeight / 2 + markHeight * startScale) * unitsPerPixel;
+      const flights = {
+        't-cap': { x: -viewportWidth * 0.12 * unitsPerPixel, y: -travelY, rotation: -330, delay: 0 },
+        't-stem': { x: -travelX, y: viewportHeight * 0.1 * unitsPerPixel, rotation: 405, delay: 100 },
+        'h-crossbar': { x: viewportWidth * 0.08 * unitsPerPixel, y: travelY, rotation: -390, delay: 200 },
+        'h-upright': { x: travelX, y: -viewportHeight * 0.12 * unitsPerPixel, rotation: 345, delay: 300 }
+      };
+      root.dataset.introState = 'tumbling';
+      await Promise.all(bars.map(bar => {
+        const flight = flights[bar.dataset.bar];
+        if (!flight) throw new Error('Unknown logo bar');
+        const transform = (x, y, rotation, scale = 1) => `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`;
+        return animate(bar, [
+          { transform: transform(flight.x, flight.y, flight.rotation, 0.8), opacity: 0, offset: 0 },
+          { transform: transform(flight.x * 0.85, flight.y * 0.85, flight.rotation * 0.85, 0.88), opacity: 1, offset: 0.12 },
+          { transform: transform(-flight.x * 0.012, -flight.y * 0.012, -Math.sign(flight.rotation) * 7, 1.015), opacity: 1, offset: 0.78 },
+          { transform: transform(flight.x * 0.003, flight.y * 0.003, Math.sign(flight.rotation) * 2), opacity: 1, offset: 0.91 },
+          { transform: transform(0, 0, 0), opacity: 1, offset: 1 }
+        ], { duration: 1450, delay: flight.delay, easing: 'cubic-bezier(.22,.65,.28,1)' });
+      }));
+      if (!active) return;
+      root.dataset.introState = 'assembled';
+      await animate(mark, [{ transform: startTransform }, { transform: startTransform }], { duration: 240 });
       if (!active) return;
       root.dataset.introState = 'collapsing';
       const destinationTransform = `translate(${destination.left}px, ${destination.top}px) scale(${destination.width / markWidth}, ${destination.height / markHeight})`;
       await Promise.all([
         animate(mark, [
-          { transform: expandedTransform },
+          { transform: startTransform },
           { transform: destinationTransform }
-        ], { duration: 1150, easing: 'cubic-bezier(.64,0,.24,1)' }),
+        ], { duration: 950, easing: 'cubic-bezier(.64,0,.24,1)' }),
         animate(background, [
           { opacity: 1, offset: 0 },
           { opacity: 1, offset: 0.15 },
           { opacity: 0, offset: 1 }
-        ], { duration: 1150, easing: 'ease-in-out' })
+        ], { duration: 950, easing: 'ease-in-out' })
       ]);
       if (!active) return;
       await animate(mark, [{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out' });

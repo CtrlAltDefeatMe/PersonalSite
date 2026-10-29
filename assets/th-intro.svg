@@ -3,6 +3,16 @@
   <title id="title">Thomas Herr TH monogram</title>
   <desc id="desc">Geometric TH monogram reconstructed from the supplied raster reference. Muted steel blue T and dark slate navy H. Straight edges, square corners and two open joins. Solid colour reconstruction, not a pixel-exact copy of the raster texture.</desc>
   <!-- Construction units: logo 759 x 558; T cap 597 x 99; T stem width 125; H upright width 139; H crossbar height 109; upper gap 23; middle gap 21. -->
-  <defs><linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#587caa"/><stop offset="1" stop-color="#42628c"/></linearGradient><linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2e4268"/><stop offset="1" stop-color="#233351"/></linearGradient></defs><path id="T" fill="url(#steel)" d="M 248,343 H 845 L 744,442 H 577 V 901 H 452 V 442 H 248 Z"/>
-  <path id="H" fill="url(#navy)" d="M 868,343 H 1007 V 901 H 868 V 666 H 598 V 557 H 868 Z"/>
+  <defs>
+    <linearGradient id="steel" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(248 343) scale(597 558)">
+      <stop stop-color="#587caa"/><stop offset="1" stop-color="#42628c"/>
+    </linearGradient>
+    <linearGradient id="navy" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(598 343) scale(409 558)">
+      <stop stop-color="#2e4268"/><stop offset="1" stop-color="#233351"/>
+    </linearGradient>
+  </defs>
+  <path id="intro-t-cap" class="intro-bar" data-bar="t-cap" fill="url(#steel)" d="M 248,343 H 845 L 744,442 H 248 Z"/>
+  <path id="intro-t-stem" class="intro-bar" data-bar="t-stem" fill="url(#steel)" d="M 452,442 H 577 V 901 H 452 Z"/>
+  <path id="intro-h-crossbar" class="intro-bar" data-bar="h-crossbar" fill="url(#navy)" d="M 598,557 H 868 V 666 H 598 Z"/>
+  <path id="intro-h-upright" class="intro-bar" data-bar="h-upright" fill="url(#navy)" d="M 868,343 H 1007 V 901 H 868 Z"/>
 </svg>
