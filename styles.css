@@ -37,8 +37,10 @@ body.intro-active { overflow: hidden; }
 .intro-overlay { position: fixed; inset: 0; z-index: 1000; overflow: hidden; }
 .intro-overlay[hidden] { display: none; }
 .intro-background { position: absolute; inset: 0; background: radial-gradient(ellipse at center, #d4e8fa, #bed7ef); }
-#intro-mark { position: fixed; top: 0; left: 0; display: block; width: 200px; max-width: none; height: auto; aspect-ratio: 759 / 558; overflow: visible; transform-origin: 0 0; will-change: transform; }
-.intro-bar { transform-box: fill-box; transform-origin: center; opacity: 0; will-change: transform, opacity; }
+#intro-scene { position: fixed; top: 0; left: 0; display: block; width: 1000px; max-width: none; height: auto; aspect-ratio: 2171 / 724; overflow: visible; transform-origin: 0 0; will-change: transform, opacity; }
+#intro-mountain { transform-box: view-box; transform-origin: 0 0; will-change: transform; }
+#intro-mark { opacity: 0; will-change: opacity; }
+.intro-ridge { stroke-dasharray: 1; stroke-dashoffset: 1; opacity: 0; will-change: stroke-dashoffset, opacity; }
 #skip-intro { position: absolute; right: 24px; bottom: 24px; border: 1px solid #25365025; border-radius: 3px; background: #ffffffd9; color: var(--ink); padding: 9px 16px; font-size: 12px; cursor: pointer; }
 .hero { padding: 66px 0 42px; border-bottom: 1px solid var(--line); }
 .intro-label { font-size: 13px; color: var(--blue); margin-bottom: 16px; }

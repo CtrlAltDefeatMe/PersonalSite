@@ -40,7 +40,9 @@
   const root = document.documentElement;
   const overlay = document.querySelector('#intro-overlay');
   const mark = document.querySelector('#intro-mark');
-  const bars = mark ? [...mark.querySelectorAll('.intro-bar')] : [];
+  const scene = document.querySelector('#intro-scene');
+  const mountain = document.querySelector('#intro-mountain');
+  const ridges = mountain ? [...mountain.querySelectorAll('.intro-ridge')] : [];
   const background = overlay?.querySelector('.intro-background');
   const skip = document.querySelector('#skip-intro');
   const content = document.querySelector('#site-content');
@@ -48,8 +50,8 @@
   const target = document.querySelector('#banner-logo-target');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const logoBounds = { x: 184, y: 201, width: 431, height: 316 };
-  const markWidth = 200;
-  const markHeight = markWidth * 558 / 759;
+  const sceneWidth = 1000;
+  const sceneHeight = sceneWidth * 724 / 2171;
   let active = false;
   let safeguard;
   let frame;
@@ -66,9 +68,8 @@
     return Number.parseFloat(value) || 0;
   }
 
-  // The mark is baked into the supplied banner, so derive its visible position
-  // from the same cover/contain crop the browser uses for that image.
-  function logoRect() {
+  // Match the vector scene to the supplied image, including its cover crop.
+  function bannerRect() {
     if (!banner || !target || !banner.naturalWidth || !banner.naturalHeight) return null;
     const box = banner.getBoundingClientRect();
     if (!box.width || !box.height) return null;
@@ -96,7 +97,10 @@
       width: `${rect.width}px`,
       height: `${rect.height}px`
     });
-    return rect;
+    return {
+      left: box.left + offsetX, top: box.top + offsetY,
+      width: banner.naturalWidth * scaleX, height: banner.naturalHeight * scaleY
+    };
   }
 
   function finishIntro(state) {
@@ -134,11 +138,13 @@
   }
 
   async function playIntro() {
-    if (!overlay || !mark || !background || !skip || !content || !banner || !target || bars.length !== 4) {
+    const hasOutline = ridges.some(ridge => ridge.dataset.ridge === 'main')
+      && ridges.some(ridge => ridge.dataset.ridge === 'mast');
+    if (!overlay || !scene || !mark || !mountain || !background || !skip || !content || !banner || !target || !hasOutline) {
       root.dataset.introState = 'skipped';
       return;
     }
-    if (reducedMotion.matches || (location.hash && location.hash !== '#top') || !mark.animate) {
+    if (reducedMotion.matches || (location.hash && location.hash !== '#top') || !scene.animate) {
       root.dataset.introState = 'skipped';
       return;
     }
@@ -149,62 +155,63 @@
     document.body.classList.add('intro-active');
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const startScale = Math.min(360, viewportWidth * 0.62) / markWidth;
-    const transformAtCenter = scale => `translate(${(viewportWidth - markWidth * scale) / 2}px, ${(viewportHeight - markHeight * scale) / 2}px) scale(${scale})`;
-    const startTransform = transformAtCenter(startScale);
-    Object.assign(mark.style, { width: `${markWidth}px`, height: `${markHeight}px`, transform: startTransform, opacity: '1' });
+    const startScale = Math.min(1100, viewportWidth * 0.94) / sceneWidth;
+    const startTransform = `translate(${(viewportWidth - sceneWidth * startScale) / 2}px, ${(viewportHeight - sceneHeight * startScale) / 2}px) scale(${startScale})`;
+    // Center and enlarge the ridge while it draws; make room for the monogram
+    // only once the outline is complete.
+    const mountainFocus = 'translate(-860px, -155px) scale(1.45)';
+    const mountainHome = 'translate(0px, 0px) scale(1)';
+    const drawingStroke = Math.max(3.5, 1.2 * 2171 / (sceneWidth * startScale * 1.45));
+    Object.assign(scene.style, { width: `${sceneWidth}px`, height: `${sceneHeight}px`, transform: startTransform, opacity: '1' });
+    mountain.style.transform = mountainFocus;
+    mountain.style.strokeWidth = String(drawingStroke);
+    mark.style.opacity = '0';
     background.style.opacity = '1';
     overlay.hidden = false;
-    // A failed asset or interrupted animation must never leave the page covered.
-    safeguard = setTimeout(() => finishIntro('skipped'), 10000);
+    safeguard = setTimeout(() => finishIntro('skipped'), 12000);
     try {
       await imageReady(banner);
       if (!active) return;
-      const destination = logoRect();
+      const destination = bannerRect();
       if (!destination) throw new Error('Banner has no visible size');
-      // SVG translations use viewBox units; convert viewport distances so every
-      // bar begins beyond its own edge on both phones and larger screens.
-      const unitsPerPixel = 759 / (markWidth * startScale);
-      const travelX = (viewportWidth / 2 + markWidth * startScale) * unitsPerPixel;
-      const travelY = (viewportHeight / 2 + markHeight * startScale) * unitsPerPixel;
-      const flights = {
-        't-cap': { x: -viewportWidth * 0.12 * unitsPerPixel, y: -travelY, rotation: -330, delay: 0 },
-        't-stem': { x: -travelX, y: viewportHeight * 0.1 * unitsPerPixel, rotation: 405, delay: 200 },
-        'h-crossbar': { x: viewportWidth * 0.08 * unitsPerPixel, y: travelY, rotation: -390, delay: 400 },
-        'h-upright': { x: travelX, y: -viewportHeight * 0.12 * unitsPerPixel, rotation: 345, delay: 600 }
-      };
-      root.dataset.introState = 'tumbling';
-      await Promise.all(bars.map(bar => {
-        const flight = flights[bar.dataset.bar];
-        if (!flight) throw new Error('Unknown logo bar');
-        const transform = (x, y, rotation, scale = 1) => `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`;
-        return animate(bar, [
-          { transform: transform(flight.x, flight.y, flight.rotation, 0.8), opacity: 0, offset: 0 },
-          { transform: transform(flight.x * 0.85, flight.y * 0.85, flight.rotation * 0.85, 0.88), opacity: 1, offset: 0.12 },
-          { transform: transform(-flight.x * 0.012, -flight.y * 0.012, -Math.sign(flight.rotation) * 7, 1.015), opacity: 1, offset: 0.78 },
-          { transform: transform(flight.x * 0.003, flight.y * 0.003, Math.sign(flight.rotation) * 2), opacity: 1, offset: 0.91 },
-          { transform: transform(0, 0, 0), opacity: 1, offset: 1 }
-        ], { duration: 2900, delay: flight.delay, easing: 'cubic-bezier(.22,.65,.28,1)' });
+      root.dataset.introState = 'drawing';
+      await Promise.all(ridges.map((ridge, index) => {
+        const name = ridge.dataset.ridge;
+        const duration = name === 'main' ? 2700 : name === 'mast' ? 500 : 1100;
+        const delay = name === 'main' ? 0 : name === 'mast' ? 1400 : 900 + index * 120;
+        return animate(ridge, [
+          { strokeDashoffset: '1', opacity: 0, offset: 0 },
+          { strokeDashoffset: '0.98', opacity: 1, offset: 0.02 },
+          { strokeDashoffset: '0', opacity: 1, offset: 1 }
+        ], { duration, delay, easing: 'ease-in-out' });
       }));
       if (!active) return;
-      root.dataset.introState = 'assembled';
-      await animate(mark, [{ transform: startTransform }, { transform: startTransform }], { duration: 240 });
-      if (!active) return;
-      root.dataset.introState = 'collapsing';
-      const destinationTransform = `translate(${destination.left}px, ${destination.top}px) scale(${destination.width / markWidth}, ${destination.height / markHeight})`;
+      root.dataset.introState = 'composing';
       await Promise.all([
-        animate(mark, [
-          { transform: startTransform },
-          { transform: destinationTransform }
-        ], { duration: 950, easing: 'cubic-bezier(.64,0,.24,1)' }),
-        animate(background, [
-          { opacity: 1, offset: 0 },
-          { opacity: 1, offset: 0.15 },
-          { opacity: 0, offset: 1 }
-        ], { duration: 950, easing: 'ease-in-out' })
+        animate(mountain, [
+          { transform: mountainFocus, strokeWidth: String(drawingStroke) },
+          { transform: mountainHome, strokeWidth: '3.5' }
+        ], {
+          duration: 650, easing: 'cubic-bezier(.4,0,.2,1)'
+        }),
+        animate(mark, [{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out' })
       ]);
       if (!active) return;
-      await animate(mark, [{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out' });
+      root.dataset.introState = 'assembled';
+      await animate(scene, [{ transform: startTransform }, { transform: startTransform }], { duration: 220 });
+      if (!active) return;
+      root.dataset.introState = 'settling';
+      const destinationTransform = `translate(${destination.left}px, ${destination.top}px) scale(${destination.width / sceneWidth}, ${destination.height / sceneHeight})`;
+      await Promise.all([
+        animate(scene, [{ transform: startTransform }, { transform: destinationTransform }], {
+          duration: 1000, easing: 'cubic-bezier(.64,0,.24,1)'
+        }),
+        animate(background, [
+          { opacity: 1, offset: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 0, offset: 1 }
+        ], { duration: 1000, easing: 'ease-in-out' })
+      ]);
+      if (!active) return;
+      await animate(scene, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-out' });
       finishIntro('complete');
     } catch {
       finishIntro('skipped');
@@ -224,10 +231,10 @@
   window.addEventListener('resize', () => {
     finishIntro('skipped');
     cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(logoRect);
+    frame = requestAnimationFrame(bannerRect);
   }, { passive: true });
   window.addEventListener('pagehide', () => finishIntro('skipped'));
-  banner?.addEventListener('load', logoRect);
-  logoRect();
+  banner?.addEventListener('load', bannerRect);
+  bannerRect();
   playIntro();
 })();

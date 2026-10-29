@@ -9,28 +9,39 @@
   <title>Thomas Herr — Transfer Pricing & AI-Enabled Transformation</title>
   <link rel="icon" href="assets/th-monogram.png" type="image/png">
   <link rel="preload" href="assets/website-banner.png" as="image">
-  <link rel="stylesheet" href="styles.css?v=20261029-th-bars">
-  <script src="script.js?v=20261029-th-bars-slower" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20261029-santis-draw">
+  <script src="script.js?v=20261029-santis-draw" defer></script>
 </head>
 <body>
 <div class="intro-overlay" id="intro-overlay" hidden>
   <div class="intro-background"></div>
-  <svg xmlns="http://www.w3.org/2000/svg" width="759" height="558" viewBox="248 343 759 558" id="intro-mark" aria-hidden="true" focusable="false">
-  <title id="title">Thomas Herr TH monogram</title>
-  <desc id="desc">Geometric TH monogram reconstructed from the supplied raster reference. Muted steel blue T and dark slate navy H. Straight edges, square corners and two open joins. Solid colour reconstruction, not a pixel-exact copy of the raster texture.</desc>
-  <!-- Construction units: logo 759 x 558; T cap 597 x 99; T stem width 125; H upright width 139; H crossbar height 109; upper gap 23; middle gap 21. -->
+  <svg id="intro-scene" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="2171" height="724" viewBox="0 0 2171 724" role="img" aria-labelledby="santis-title santis-desc">
+  <title id="santis-title">Säntis and the Thomas Herr monogram</title>
+  <desc id="santis-desc">The Säntis ridgeline and summit mast, traced from the supplied website banner, alongside the TH monogram.</desc>
   <defs>
-    <linearGradient id="steel" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(248 343) scale(597 558)">
+    <linearGradient id="santis-steel" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(248 343) scale(597 558)">
       <stop stop-color="#587caa"/><stop offset="1" stop-color="#42628c"/>
     </linearGradient>
-    <linearGradient id="navy" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(598 343) scale(409 558)">
+    <linearGradient id="santis-navy" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(598 343) scale(409 558)">
       <stop stop-color="#2e4268"/><stop offset="1" stop-color="#233351"/>
     </linearGradient>
   </defs>
-  <path id="intro-t-cap" class="intro-bar" data-bar="t-cap" fill="url(#steel)" d="M 248,343 H 845 L 744,442 H 248 Z"/>
-  <path id="intro-t-stem" class="intro-bar" data-bar="t-stem" fill="url(#steel)" d="M 452,442 H 577 V 901 H 452 Z"/>
-  <path id="intro-h-crossbar" class="intro-bar" data-bar="h-crossbar" fill="url(#navy)" d="M 598,557 H 868 V 666 H 598 Z"/>
-  <path id="intro-h-upright" class="intro-bar" data-bar="h-upright" fill="url(#navy)" d="M 868,343 H 1007 V 901 H 868 Z"/>
+  <g id="intro-mountain" fill="none" stroke="#4c6e94" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path id="santis-main" class="intro-ridge" data-ridge="main" pathLength="1" d="M760 491 L800 475 L834 461.5 L852 459 L878 450 L912 433.5 L926 425.5 L934 421.5 L947 424 L970 430 L991 421.5 L999 415 Q1006 410 1011 409 Q1023 414 1031 411 L1049 401.5 L1061 400.5 L1075 394.5 L1088 396.5 L1106 388 L1138 351 L1156 342 L1159 341.5 L1189 349.5 Q1204 347 1219 338 L1230 336 L1238 333 L1261 338 L1270 336.5 L1287 330 L1304 316 L1319 305.5 L1329 302.5 L1350 290.5 L1361 286 L1376 290 L1385 285 L1393 279.5 L1405 271.5 Q1420 262 1428 264 Q1439 264 1446 270.5 L1460 282.5 L1473 288.5 L1486 303.5 L1498 307 L1505 307 L1510 305 L1518 306 L1531 312.5 L1557 332.5 L1580 348 L1597 359 L1616 365 L1643 351 L1653 355 L1659 354 L1672 361.5 L1693 394.5 L1709 403.5 L1721 414.5 L1731 419 L1742 416 L1752 422 L1758 429 L1768 431.5 L1776 437 L1794 433 L1805 436 L1812 444 L1816 441.5 L1820 443.5 L1836 456.5 L1851 462 L1880 477.5 L1932 500.5"/>
+    <path id="santis-mast" class="intro-ridge" data-ridge="mast" pathLength="1" d="M1427.5 263 L1427.5 216 M1425.5 240 L1429.5 240 M1424 261 L1431.5 261"/>
+    <path id="santis-detail-1" class="intro-ridge" data-ridge="detail-1" pathLength="1" d="M1043 465 L1080 452.5 L1110 442 Q1133 431 1150 427.5 L1180 417.5 L1210 405.5 Q1229 398 1240 386.5 L1250 378 L1260 367 L1270 364.5 Q1287 359 1295 359 Q1304 360 1310 364 L1340 375 L1370 384.5 L1400 392 L1420 398 L1440 408 L1460 418 L1480 425 L1500 433.5 L1530 447.5 L1560 462.5 L1580 471.5 L1600 478 L1620 486.5 L1641 495.5"/>
+    <path id="santis-detail-2" class="intro-ridge" data-ridge="detail-2" pathLength="1" d="M867 477 Q889 463 903 449 L920 431 L934 421.5 L949 426 L956 438 L973 446"/>
+    <path id="santis-detail-3" class="intro-ridge" data-ridge="detail-3" pathLength="1" d="M1313 377 Q1331 389 1344 400 Q1365 415 1390 427.5 L1410 438 L1438 453"/>
+    <path id="santis-detail-4" class="intro-ridge" data-ridge="detail-4" pathLength="1" d="M1484 303 Q1494 320 1503 332 Q1513 342 1527 349 M1266 365 Q1279 342 1297 322 M1376 290 L1383 297 L1391 282 M1805 436 L1816 452"/>
+  </g>
+  <g id="intro-mark" class="intro-logo">
+    <svg x="184" y="201" width="431" height="316" viewBox="248 343 759 558" preserveAspectRatio="none" overflow="visible">
+      <path id="santis-t-cap" fill="url(#santis-steel)" d="M248 343 H845 L744 442 H248 Z"/>
+      <path id="santis-t-stem" fill="url(#santis-steel)" d="M452 442 H577 V901 H452 Z"/>
+      <path id="santis-h-crossbar" fill="url(#santis-navy)" d="M598 557 H868 V666 H598 Z"/>
+      <path id="santis-h-upright" fill="url(#santis-navy)" d="M868 343 H1007 V901 H868 Z"/>
+    </svg>
+  </g>
 </svg>
   <button id="skip-intro" type="button">Skip intro</button>
 </div>
