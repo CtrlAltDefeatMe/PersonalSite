@@ -1,18 +1,22 @@
 (() => {
   const toggle = document.querySelector('#menu-toggle');
   const navigation = document.querySelector('#navigation');
+  // Above this width the links sit inline in the banner and the toggle is hidden (see styles.css).
+  const inlineNav = window.matchMedia('(min-width: 1000px)');
 
   function setMenu(open, returnFocus = false) {
     if (!toggle || !navigation) return;
+    if (inlineNav.matches) open = false;
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-    navigation.hidden = !open;
+    navigation.hidden = inlineNav.matches ? false : !open;
     navigation.classList.toggle('is-open', open);
-    if (returnFocus) toggle.focus({ preventScroll: true });
+    if (returnFocus && !inlineNav.matches) toggle.focus({ preventScroll: true });
   }
 
   if (toggle && navigation) {
     setMenu(false);
+    inlineNav.addEventListener('change', () => setMenu(false));
     toggle.addEventListener('click', () => setMenu(toggle.getAttribute('aria-expanded') !== 'true'));
     toggle.addEventListener('keydown', event => {
       if (event.key !== 'ArrowDown') return;
@@ -52,6 +56,7 @@
   const logoBounds = { x: 184, y: 201, width: 431, height: 316 };
   const sceneWidth = 1000;
   const sceneHeight = sceneWidth * 724 / 2171;
+  const introSeenKey = 'th-intro-seen';
   let active = false;
   let safeguard;
   let frame;
@@ -148,6 +153,16 @@
       root.dataset.introState = 'skipped';
       return;
     }
+    // Play once per browser session; reloads and return visits in the same tab go straight to the page.
+    try {
+      if (sessionStorage.getItem(introSeenKey)) {
+        root.dataset.introState = 'skipped';
+        return;
+      }
+      sessionStorage.setItem(introSeenKey, '1');
+    } catch {
+      // Storage unavailable (private mode, blocked): fall through and play the intro.
+    }
     active = true;
     previousFocus = document.activeElement;
     wasInert = content.inert;
@@ -177,8 +192,8 @@
       root.dataset.introState = 'drawing';
       await Promise.all(ridges.map((ridge, index) => {
         const name = ridge.dataset.ridge;
-        const duration = name === 'main' ? 2700 : name === 'mast' ? 500 : 1100;
-        const delay = name === 'main' ? 0 : name === 'mast' ? 1400 : 900 + index * 120;
+        const duration = name === 'main' ? 1250 : name === 'mast' ? 250 : 500;
+        const delay = name === 'main' ? 0 : name === 'mast' ? 650 : 420 + index * 55;
         return animate(ridge, [
           { strokeDashoffset: '1', opacity: 0, offset: 0 },
           { strokeDashoffset: '0.98', opacity: 1, offset: 0.02 },
@@ -192,26 +207,26 @@
           { transform: mountainFocus, strokeWidth: String(drawingStroke) },
           { transform: mountainHome, strokeWidth: '3.5' }
         ], {
-          duration: 650, easing: 'cubic-bezier(.4,0,.2,1)'
+          duration: 320, easing: 'cubic-bezier(.4,0,.2,1)'
         }),
-        animate(mark, [{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out' })
+        animate(mark, [{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'ease-out' })
       ]);
       if (!active) return;
       root.dataset.introState = 'assembled';
-      await animate(scene, [{ transform: startTransform }, { transform: startTransform }], { duration: 220 });
+      await animate(scene, [{ transform: startTransform }, { transform: startTransform }], { duration: 100 });
       if (!active) return;
       root.dataset.introState = 'settling';
       const destinationTransform = `translate(${destination.left}px, ${destination.top}px) scale(${destination.width / sceneWidth}, ${destination.height / sceneHeight})`;
       await Promise.all([
         animate(scene, [{ transform: startTransform }, { transform: destinationTransform }], {
-          duration: 1000, easing: 'cubic-bezier(.64,0,.24,1)'
+          duration: 520, easing: 'cubic-bezier(.64,0,.24,1)'
         }),
         animate(background, [
           { opacity: 1, offset: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 0, offset: 1 }
-        ], { duration: 1000, easing: 'ease-in-out' })
+        ], { duration: 520, easing: 'ease-in-out' })
       ]);
       if (!active) return;
-      await animate(scene, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-out' });
+      await animate(scene, [{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'ease-out' });
       finishIntro('complete');
     } catch {
       finishIntro('skipped');
