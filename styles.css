@@ -64,6 +64,8 @@ h2 { font-size: 27px; line-height: 1.25; font-weight: 500; letter-spacing: -.7px
 .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px 70px; margin-top: 28px; }
 h3 { font-size: 18px; line-height: 1.4; font-weight: 600; letter-spacing: -.2px; }
 .service p { margin-top: 9px; max-width: 460px; color: var(--muted); font-size: 16px; line-height: 1.7; }
+.service-advisory { margin-top: 30px; padding-top: 23px; border-top: 1px solid var(--line); }
+.service-advisory p { max-width: 760px; }
 .about { display: grid; grid-template-columns: 200px 1fr; gap: 50px; align-items: start; }
 .portrait { width: 200px; height: auto; aspect-ratio: 1; object-fit: cover; object-position: center top; border-radius: 3px; }
 .about-copy p { max-width: 710px; color: var(--muted); font-size: 16px; line-height: 1.75; margin-top: 18px; }
