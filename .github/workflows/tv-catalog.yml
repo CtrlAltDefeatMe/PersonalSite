@@ -1,0 +1,33 @@
+# Rebuilds tv/catalog.json, the list of current and announced streaming shows
+# offered in the settings of the New Episodes page (/tv/).
+name: Refresh TV show catalog
+
+on:
+  schedule:
+    - cron: '23 10 * * 1' # Mondays, 10:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build catalog
+        run: node tv/build-catalog.mjs
+      - name: Commit catalog if it changed
+        run: |
+          if git diff --quiet -- tv/catalog.json; then
+            echo "Catalog unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tv/catalog.json
+          git commit -m "Refresh TV show catalog"
+          git push
