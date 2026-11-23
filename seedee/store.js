@@ -1,0 +1,92 @@
+// Vote storage. Preview mode keeps everything in this browser; live mode also sends each
+// vote to Supabase (see config.js and setup.sql) and reads totals from there.
+(function () {
+  'use strict';
+  const cfg = window.SEEDEE_CONFIG || {};
+  const live = !!(cfg.supabaseUrl && cfg.supabaseKey);
+  const CASES = ['A', 'B', 'C', 'D'];
+  const K_PEOPLE = 'seedee.people'; // { "<name, lower case>": { id, name } }
+  const K_ME = 'seedee.me';         // "<name, lower case>"
+  const K_VOTES = 'seedee.votes';   // { "<voter id>": { A: { a, c }, ... } }
+  const mem = {};
+
+  function read(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : (key in mem ? mem[key] : fallback); }
+    catch (e) { return key in mem ? mem[key] : fallback; }
+  }
+  function write(key, value) {
+    mem[key] = value;
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private window: keep in memory */ }
+  }
+  function uuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => {
+      const r = Math.random() * 16 | 0; return (ch === 'x' ? r : (r & 3) | 8).toString(16);
+    });
+  }
+  async function rpc(fn, body) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+    try {
+      const res = await fetch(cfg.supabaseUrl.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, {
+        method: 'POST', signal: ctl.signal,
+        headers: { 'Content-Type': 'application/json', apikey: cfg.supabaseKey, Authorization: 'Bearer ' + cfg.supabaseKey },
+        body: JSON.stringify(body || {})
+      });
+      if (!res.ok) throw new Error('Store answered ' + res.status);
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    } finally { clearTimeout(timer); }
+  }
+
+  function me() {
+    const key = read(K_ME, null), people = read(K_PEOPLE, {});
+    return key && people[key] ? people[key] : null;
+  }
+  function signIn(name) {
+    const clean = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+    if (!clean) return null;
+    const key = clean.toLowerCase(), people = read(K_PEOPLE, {});
+    if (!people[key]) people[key] = { id: uuid(), name: clean };
+    people[key].name = clean;
+    write(K_PEOPLE, people); write(K_ME, key);
+    return people[key];
+  }
+  function signOut() { write(K_ME, null); }
+  function myVotes() { const p = me(); return p ? (read(K_VOTES, {})[p.id] || {}) : {}; }
+
+  // Saves on this device first, then to the shared store. Rejects if the shared save fails.
+  async function cast(caseKey, answer, comment) {
+    const p = me();
+    if (!p) throw new Error('Not signed in');
+    const all = read(K_VOTES, {});
+    all[p.id] = all[p.id] || {};
+    all[p.id][caseKey] = { a: answer, c: comment || '' };
+    write(K_VOTES, all);
+    if (live) await rpc('seedee_cast', { p_voter: p.id, p_name: p.name, p_case: caseKey, p_answer: answer, p_comment: comment || null });
+  }
+
+  function emptyTotals() {
+    const t = {}; CASES.forEach(k => { t[k] = { yes: 0, no: 0, unc: 0 }; }); return t;
+  }
+  async function totals() {
+    const t = emptyTotals();
+    if (live) {
+      (await rpc('seedee_totals') || []).forEach(r => { if (t[r.case_key] && r.answer in t[r.case_key]) t[r.case_key][r.answer] = Number(r.n) || 0; });
+    } else {
+      Object.values(read(K_VOTES, {})).forEach(v => CASES.forEach(k => { if (v[k] && v[k].a in t[k]) t[k][v[k].a]++; }));
+    }
+    return t;
+  }
+  // [{ path: 'yynu', n: 3 }]: one letter per case A-D (y, n, u, or - for not answered).
+  async function paths() {
+    if (live) return (await rpc('seedee_paths') || []).map(r => ({ path: String(r.path), n: Number(r.n) || 0 }));
+    const count = {};
+    Object.values(read(K_VOTES, {})).forEach(v => {
+      const path = CASES.map(k => (v[k] ? v[k].a[0] : '-')).join('');
+      if (path !== '----') count[path] = (count[path] || 0) + 1;
+    });
+    return Object.keys(count).map(path => ({ path, n: count[path] }));
+  }
+
+  window.SeeDeeStore = { live, me, signIn, signOut, myVotes, cast, totals, paths };
+})();
