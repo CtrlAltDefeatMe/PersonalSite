@@ -3,8 +3,8 @@ Personal Website
 
 ## New Episodes (`/tv/`)
 
-A private-use page listing streaming shows that released an episode yesterday or today.
-It is not linked from the main site and is marked `noindex`.
+A private-use page listing streaming shows that released an episode today or in the prior three days.
+It is linked from the main site menu and marked `noindex`.
 
 - `tv/index.html`, `tv/tv.css`, `tv/tv.js`: the page. It reads the schedule live from the
   [TVMaze API](https://www.tvmaze.com/api) in the visitor's browser and keeps settings in `localStorage`.
