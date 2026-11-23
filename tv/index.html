@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Streaming shows with a new episode yesterday or today.">
+  <title>New Episodes</title>
+  <link rel="icon" href="../th-tab-icon.svg" type="image/svg+xml" sizes="any">
+  <link rel="icon" href="../th-tab-icon-32.png" type="image/png" sizes="32x32">
+  <link rel="stylesheet" href="tv.css?v=20261123">
+  <script src="tv.js?v=20261123" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="home" href="../" aria-label="Thomas Herr — home"><img src="../th-tab-icon.svg" width="34" height="34" alt=""></a>
+    <div class="top-title">
+      <h1>New episodes</h1>
+      <p id="subtitle">Streaming releases from yesterday and today</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="refresh" type="button">Refresh</button>
+      <button class="btn btn-primary" id="open-settings" type="button">Settings</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <p class="status" id="status" role="status">Loading the schedule…</p>
+  <div id="days"></div>
+</main>
+
+<footer class="wrap">
+  <p>Schedule data from <a href="https://www.tvmaze.com/" rel="noopener">TVMaze</a> (CC BY-SA). Dates follow each show's release date. Your settings are saved in this browser only.</p>
+</footer>
+
+<dialog id="settings" aria-labelledby="settings-title">
+  <div class="dlg-head">
+    <h2 id="settings-title">Settings</h2>
+    <button class="btn btn-primary" id="close-settings" type="button">Done</button>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Settings sections">
+    <button type="button" role="tab" id="tab-filters" aria-controls="panel-filters" aria-selected="true">Filters</button>
+    <button type="button" role="tab" id="tab-shows" aria-controls="panel-shows" aria-selected="false">Shows</button>
+  </div>
+
+  <div class="panel" id="panel-filters" role="tabpanel" aria-labelledby="tab-filters">
+    <fieldset>
+      <legend>Streaming services</legend>
+      <div class="checks" id="service-checks"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Genres</legend>
+      <div class="chips" id="genre-chips"></div>
+      <p class="hint">A show is included when it carries at least one selected genre. Only scripted and animated series are matched automatically; add anything else from the Shows tab.</p>
+    </fieldset>
+    <fieldset>
+      <legend>Options</legend>
+      <div class="checks one-col">
+        <label><input type="checkbox" id="opt-hideKids"> <span>Hide children's and family shows <small>Keeps fantasy and animation to adult titles.</small></span></label>
+        <label><input type="checkbox" id="opt-englishOnly"> <span>English-language shows only</span></label>
+        <label><input type="checkbox" id="opt-includeNetwork"> <span>Include TV network shows that stream on these services <small>For example NBC shows on Peacock. They usually reach streaming the day after they air.</small></span></label>
+        <label><input type="checkbox" id="opt-includeUntagged"> <span>Include shows with no genre listed yet <small>Common for newly announced series.</small></span></label>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="panel" id="panel-shows" role="tabpanel" aria-labelledby="tab-shows" hidden>
+    <p class="hint">Ticked shows appear here on the day they release an episode. Each show follows your filters until you tick or untick it yourself. Announced shows that have not premiered yet are listed too.</p>
+    <label class="inline-check"><input type="checkbox" id="opt-onlySelected"> <span>Only include shows I tick myself</span></label>
+    <div class="show-controls">
+      <input type="search" id="show-search" placeholder="Search shows" aria-label="Search shows" autocomplete="off">
+      <select id="show-service" aria-label="Service"></select>
+      <select id="show-status" aria-label="Status">
+        <option value="">Any status</option>
+        <option value="current">Current series</option>
+        <option value="announced">Announced, not yet premiered</option>
+      </select>
+      <select id="show-selection" aria-label="Selection">
+        <option value="">All shows</option>
+        <option value="in">Included</option>
+        <option value="out">Not included</option>
+        <option value="manual">Ticked or unticked by me</option>
+      </select>
+      <select id="show-sort" aria-label="Sort">
+        <option value="popular">Most popular first</option>
+        <option value="name">A to Z</option>
+        <option value="premiere">Newest premiere first</option>
+      </select>
+    </div>
+    <div class="bulk">
+      <span id="show-count" role="status"></span>
+      <span class="bulk-buttons">
+        <button class="link" id="bulk-in" type="button">Tick all listed</button>
+        <button class="link" id="bulk-out" type="button">Untick all listed</button>
+        <button class="link" id="bulk-auto" type="button">Reset listed to filters</button>
+      </span>
+    </div>
+    <ul class="show-list" id="show-list"></ul>
+    <div class="list-foot">
+      <button class="btn" id="show-more" type="button" hidden>Show more</button>
+      <button class="btn" id="search-everywhere" type="button" hidden></button>
+      <p class="hint" id="search-note" hidden></p>
+    </div>
+  </div>
+</dialog>
+</body>
+</html>
