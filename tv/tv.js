@@ -1,4 +1,4 @@
-// New Episodes: lists streaming shows that released an episode yesterday or today.
+// New Episodes: lists streaming shows that released an episode today or in the prior three days.
 // Schedule and show data come from the public TVMaze API (https://www.tvmaze.com/api).
 (() => {
   'use strict';
@@ -6,6 +6,7 @@
   const API = 'https://api.tvmaze.com';
   const STORE_KEY = 'tv.settings.v1';
   const PAGE = 100; // rows added to the show list per "Show more"
+  const DAYS_BACK = 3; // days shown before today
 
   // Keep in step with SERVICES in build-catalog.mjs.
   const SERVICES = [
@@ -153,6 +154,8 @@
   const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const fromYmd = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
   const longDate = (s) => fromYmd(s).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const weekday = (s) => fromYmd(s).toLocaleDateString(undefined, { weekday: 'long' });
+  const monthDay = (s) => fromYmd(s).toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
   const shortDate = (s) => fromYmd(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const plural = (n, word) => `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
   const genreLabel = (g) => (g === 'Science-Fiction' ? 'Sci-Fi' : g);
@@ -218,7 +221,7 @@
 
   function currentDays() {
     const now = new Date();
-    return [ymd(now), ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))];
+    return Array.from({ length: DAYS_BACK + 1 }, (_, i) => ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)));
   }
 
   async function getJSON(url) {
@@ -348,8 +351,8 @@
       const others = groups.filter((g) => pickOf(g.show) == null && !isIncluded(g.show) && settings.services[g.show.s]);
       const section = h('section', { class: 'day', 'aria-labelledby': `day-${i}` },
         h('div', { class: 'day-head' },
-          h('h2', { id: `day-${i}` }, i === 0 ? 'Today' : 'Yesterday'),
-          h('span', { class: 'day-date' }, longDate(day)),
+          h('h2', { id: `day-${i}` }, i === 0 ? 'Today' : i === 1 ? 'Yesterday' : weekday(day)),
+          h('span', { class: 'day-date' }, i < 2 ? longDate(day) : monthDay(day)),
           h('span', { class: 'day-count' }, plural(mine.length, 'show'))),
         mine.length
           ? h('div', { class: 'cards' }, mine.map(card))
