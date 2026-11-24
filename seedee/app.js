@@ -103,6 +103,12 @@
   // The two secret steps exist only once all four cases have been answered.
   const unlocked = () => { const v = store.myVotes(); return CASES.every(c => v[c.k]); };
   const shown = i => !STEPS[i].secret || unlocked();
+  // The furthest step that may be opened: nobody gets past a case they have not answered.
+  function limit() {
+    const v = store.myVotes();
+    for (let c = 0; c < CASES.length; c++) if (!v[CASES[c].k]) return FIRST_CASE + c;
+    return LAST;
+  }
   function neighbour(from, dir) {
     let i = from + dir;
     while (i >= 0 && i <= LAST && !shown(i)) i += dir;
@@ -110,7 +116,7 @@
   }
 
   function go(i) {
-    i = Math.max(0, Math.min(LAST, i));
+    i = Math.max(0, Math.min(LAST, limit(), i));
     if (!shown(i)) i = LAST;
     if (i === SECRET) revealed = true;
     const prev = STEPS[state.step], next = STEPS[i];
@@ -142,8 +148,8 @@
     prev.hidden = neighbour(i, -1) === i;
     prev.replaceChildren(icon('left'), 'Back');
     // On the reveal page the way forward stays out of sight until the animation has shown it.
-    // On the hidden path the only way on is the button that appears in the poll after voting.
-    next.hidden = n === i || (i === ALMOST && !revealed) || i === SECRET;
+    // On a case and on the hidden path the only way on is the button that appears in the poll after voting.
+    next.hidden = n === i || (i === ALMOST && !revealed) || i === SECRET || STEPS[i].render === cases;
     if (n !== i) next.replaceChildren(STEPS[n].k, icon('right'));
     $('count').textContent = (visible.indexOf(i) + 1) + ' / ' + visible.length;
   }
@@ -187,8 +193,9 @@
     });
   }
   function renderRidge() {
-    const i = state.step, votes = store.myVotes();
+    const i = state.step, votes = store.myVotes(), lim = limit();
     stopEls.forEach((b, j) => {
+      b.disabled = j > lim;
       b.setAttribute('aria-current', j === i ? 'true' : 'false');
       b.classList.toggle('done', j < i);
       const old = b.querySelector('.badge'); if (old) old.remove();
@@ -984,7 +991,7 @@
     document.addEventListener('keydown', e => {
       if ($('journey').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-      if (e.key === 'ArrowRight' && !(state.step === SECRET && !store.myVotes().D2)) go(neighbour(state.step, 1));
+      if (e.key === 'ArrowRight' && neighbour(state.step, 1) <= limit() && !(state.step === SECRET && !store.myVotes().D2)) go(neighbour(state.step, 1));
       if (e.key === 'ArrowLeft') go(neighbour(state.step, -1));
     });
     if (store.me()) enter(stepFromHash()); else showGate(false);

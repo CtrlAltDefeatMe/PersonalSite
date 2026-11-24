@@ -98,6 +98,7 @@ svg .ip { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: r
 .ridge polyline { fill: none; stroke: var(--ridge); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .ridge polyline.climbed { stroke: var(--ink); stroke-width: 3.2; }
 .wp { position: absolute; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ridge); background: var(--surface); font-weight: 600; font-size: 14px; display: grid; place-items: center; padding: 0; line-height: 1; }
+.wp:disabled { opacity: .4; cursor: not-allowed; }
 .wp.pip { width: 24px; height: 24px; border: 0; background: transparent; }
 .wp.pip::before { content: ""; width: 11px; height: 11px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--ridge); }
 .wp.pip.done::before { background: var(--ink); border-color: var(--ink); }
