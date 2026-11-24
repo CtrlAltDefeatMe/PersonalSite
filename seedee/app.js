@@ -854,6 +854,36 @@
   }
 
   /* ---------- step: summit ---------- */
+  // A hiker celebrating on the summit. One fixed look in both themes, drawn on a sky-blue tile.
+  function cheer() {
+    const star = (x, y, sc, fill, d) => '<path class="hk-spark" style="--d:' + d + 's" transform="translate(' + x + ' ' + y + ') scale(' + sc + ')" fill="' + fill + '" d="M0 -6L1.6 -1.6 6 0 1.6 1.6 0 6 -1.6 1.6 -6 0 -1.6 -1.6Z"/>';
+    const box = h('div', { class: 'card cheer' });
+    box.innerHTML = '<svg class="hiker" viewBox="0 0 240 250" role="img" aria-label="A hiker in an IRS sweater celebrates on the summit, poles in the air.">' +
+      '<circle cx="42" cy="44" r="17" fill="#ffffff" opacity=".75"/>' +
+      '<path d="M0 250L46 196 78 208 120 176 158 204 190 192 240 250Z" fill="#fbfdff" stroke="#4c6e94" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '<line x1="183" y1="196" x2="183" y2="126" stroke="#253650" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<path class="hk-flag" d="M183 128L216 137 183 149Z" fill="#9b3a2c"/>' +
+      star(60, 98, 1, '#9b3a2c', 0) + star(196, 84, 1.2, '#2e4268', 0.4) + star(150, 34, 0.9, '#ffffff', 0.8) + star(72, 150, 0.8, '#2e4268', 1.1) + star(92, 30, 1.1, '#9b3a2c', 0.6) +
+      '<ellipse class="hk-shadow" cx="120" cy="179" rx="26" ry="4" fill="#253650" opacity=".2"/>' +
+      '<g class="hk-body">' +
+        '<path d="M113 128L106 167M127 128L134 167" stroke="#3b4a63" stroke-width="10" stroke-linecap="round" fill="none"/>' +
+        '<path d="M99 166h12a4 4 0 0 1 4 4v6H95v-6a4 4 0 0 1 4-4zM129 166h12a4 4 0 0 1 4 4v6h-20v-6a4 4 0 0 1 4-4z" fill="#6b4a2f"/>' +
+        '<rect x="96" y="80" width="48" height="46" rx="10" fill="#9b3a2c"/>' +
+        '<g class="hk-arm hk-arm-l"><line x1="85" y1="60" x2="77" y2="16" stroke="#586475" stroke-width="2.5" stroke-linecap="round"/><line x1="107" y1="92" x2="86" y2="59" stroke="#2e4268" stroke-width="10" stroke-linecap="round"/><circle cx="85" cy="56" r="5.5" fill="#e9b98f"/></g>' +
+        '<g class="hk-arm hk-arm-r"><line x1="155" y1="60" x2="163" y2="16" stroke="#586475" stroke-width="2.5" stroke-linecap="round"/><line x1="133" y1="92" x2="154" y2="59" stroke="#2e4268" stroke-width="10" stroke-linecap="round"/><circle cx="155" cy="56" r="5.5" fill="#e9b98f"/></g>' +
+        '<rect x="103" y="84" width="34" height="46" rx="9" fill="#2e4268"/>' +
+        '<rect x="103" y="123" width="34" height="7" rx="3.5" fill="#516f97"/>' +
+        '<path d="M111 85q9 8 18 0" stroke="#516f97" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+        '<text x="120" y="114" text-anchor="middle" font-size="13.5" font-weight="800" letter-spacing=".7" fill="#ffffff" font-family="Arial, Helvetica, sans-serif">IRS</text>' +
+        '<circle cx="120" cy="68" r="14" fill="#e9b98f"/>' +
+        '<path d="M106.5 71Q120 94 133.5 71 120 78 106.5 71Z" fill="#6b4a2f"/>' +
+        '<path d="M114 72.5q6 7 12 0Z" fill="#7a2e22"/>' +
+        '<circle cx="115" cy="66.5" r="1.7" fill="#253650"/><circle cx="125" cy="66.5" r="1.7" fill="#253650"/>' +
+        '<path d="M106 63a14 14 0 0 1 28 0Z" fill="#9b3a2c"/><rect x="104.5" y="59.5" width="31" height="5.5" rx="2.75" fill="#7a2e22"/><circle cx="120" cy="48.5" r="4.2" fill="#fbfdff"/>' +
+      '</g></svg><p>You made it.</p>';
+    return box;
+  }
+
   function summit(stage, side) {
     let alive = true;
     const votes = store.myVotes(), open = unlocked();
@@ -877,7 +907,8 @@
         ...ANSWERS.map(([k, label]) => h('span', null, h('i', { class: 'sw', style: 'background:var(--p-' + k + ')' }), icon(k), label)),
         store.live ? null : h('span', null, 'Preview mode: only votes cast in this browser.')));
     side.append(detailCard('Tap a bar.'),
-      h('button', { class: 'ghost refresh', type: 'button', id: 'refresh', on: { click: load } }, icon('refresh'), 'Refresh'));
+      h('button', { class: 'ghost refresh', type: 'button', id: 'refresh', on: { click: load } }, icon('refresh'), 'Refresh'),
+      cheer());
     function clearSel() { stage.querySelectorAll('.sel').forEach(el => el.classList.remove('sel')); }
     function load() {
       crowd.replaceChildren(h('p', { class: 'empty' }, 'Loading…')); tips.replaceChildren();

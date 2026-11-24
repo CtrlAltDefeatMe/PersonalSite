@@ -384,6 +384,23 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 .paths div { display: flex; align-items: center; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .empty { color: var(--muted); font-size: 14px; padding: 18px 0; text-align: center; }
 
+/* Summit: the celebrating hiker */
+.card.cheer { background: var(--tile); border-color: transparent; padding: 0; overflow: hidden; text-align: center; }
+.hiker { display: block; width: 100%; max-width: 320px; height: auto; margin-inline: auto; }
+.cheer p { color: #253650; font-weight: 600; font-size: 15px; padding: 2px 12px 14px; }
+.hk-body { animation: hkjump .5s cubic-bezier(.3, 0, .6, 1) infinite alternate; }
+.hk-arm-l { transform-origin: 107px 92px; animation: hkwave-l .25s ease-in-out infinite alternate; }
+.hk-arm-r { transform-origin: 133px 92px; animation: hkwave-r .25s ease-in-out infinite alternate; }
+.hk-shadow { transform-origin: 120px 179px; animation: hkshadow .5s cubic-bezier(.3, 0, .6, 1) infinite alternate; }
+.hk-flag { transform-origin: 183px 138px; animation: hkflag .8s ease-in-out infinite alternate; }
+.hk-spark { transform-box: fill-box; transform-origin: center; animation: hktwinkle 1.6s ease-in-out infinite; animation-delay: var(--d); opacity: 0; }
+@keyframes hkjump { from { transform: translateY(0); } to { transform: translateY(-13px); } }
+@keyframes hkwave-l { from { transform: rotate(-9deg); } to { transform: rotate(11deg); } }
+@keyframes hkwave-r { from { transform: rotate(9deg); } to { transform: rotate(-11deg); } }
+@keyframes hkshadow { from { transform: scaleX(1); opacity: .2; } to { transform: scaleX(.62); opacity: .1; } }
+@keyframes hkflag { from { transform: skewY(-7deg); } to { transform: skewY(7deg); } }
+@keyframes hktwinkle { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
 /* Almost there: close-up of the summit where the hidden path is revealed */
 .panel.almost { background: var(--water); border-color: transparent; padding: 0; overflow: hidden; }
 .almostsvg { display: block; width: 100%; height: auto; max-height: 62vh; }
@@ -472,7 +489,8 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 }
 /* Reduced motion: the reveal still happens, as fades only, with nothing sliding or scaling. */
 @media (prefers-reduced-motion: reduce) {
-  .gear.spin, .drive path, .wp.secret.fresh { animation: none; }
+  .gear.spin, .drive path, .wp.secret.fresh, .hk-body, .hk-arm-l, .hk-arm-r, .hk-shadow, .hk-flag { animation: none; }
+  .hk-spark { animation: none; opacity: 1; }
   .go .al-cloud.veil, .done .al-cloud.veil { transform: none; }
   .go .al-key { animation-name: alstep; }
   .almostcta { transform: none; }
