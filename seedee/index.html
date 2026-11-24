@@ -9,11 +9,11 @@
   <title>O.E. SeeDee Case Study</title>
   <link rel="icon" href="../th-tab-icon.svg" type="image/svg+xml" sizes="any">
   <link rel="icon" href="../th-tab-icon-32.png" type="image/png" sizes="32x32">
-  <link rel="stylesheet" href="seedee.css?v=20261124k">
-  <script src="config.js?v=20261124k" defer></script>
-  <script src="store.js?v=20261124k" defer></script>
-  <script src="content.js?v=20261124k" defer></script>
-  <script src="app.js?v=20261124k" defer></script>
+  <link rel="stylesheet" href="seedee.css?v=20261124l">
+  <script src="config.js?v=20261124l" defer></script>
+  <script src="store.js?v=20261124l" defer></script>
+  <script src="content.js?v=20261124l" defer></script>
+  <script src="app.js?v=20261124l" defer></script>
 </head>
 <body>
 <!--page:start-->
@@ -72,6 +72,22 @@
     </div>
   </section>
 
+  <section class="gate" id="admin" hidden>
+    <div class="gatebody">
+      <h1>Summit control</h1>
+      <form id="admin-form" novalidate>
+        <label for="admin-code">Admin passcode</label>
+        <div class="signrow">
+          <input id="admin-code" name="admin-code" type="password" autocomplete="off" required>
+          <button class="primary" type="submit">Unlock</button>
+        </div>
+        <p class="err" id="admin-err" role="alert" hidden></p>
+      </form>
+      <div id="admin-panel" hidden></div>
+      <button class="link" id="admin-exit" type="button">Back to the case</button>
+    </div>
+  </section>
+
   <div id="journey" hidden>
     <div class="steprow">
       <nav class="ridge" id="ridge" aria-label="Steps"></nav>
@@ -93,7 +109,7 @@
 
   <footer>
     <span>© 2026 Thomas Herr</span>
-    <span>O.E. SeeDee Ltd. is fictitious.</span>
+    <span>O.E. SeeDee Ltd. is fictitious. <button class="link quiet" id="admin-link" type="button">Admin</button></span>
   </footer>
 </div>
 <!--page:end-->

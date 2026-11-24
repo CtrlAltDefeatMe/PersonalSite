@@ -384,6 +384,30 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 .paths div { display: flex; align-items: center; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .empty { color: var(--muted); font-size: 14px; padding: 18px 0; text-align: center; }
 
+/* Summit, while the administrator keeps it closed */
+.panel.cloudy { background: var(--tile); border-color: transparent; padding: 0; overflow: hidden; }
+.cloudy svg { display: block; width: 100%; height: auto; max-height: 46vh; }
+.wt-cloud { opacity: .96; animation: wt-drift 9s ease-in-out infinite alternate; }
+.wt-cloud.b { animation-duration: 12s; animation-direction: alternate-reverse; }
+@keyframes wt-drift { from { transform: translateX(-16px); } to { transform: translateX(18px); } }
+.waitnote { display: flex; align-items: center; gap: 12px; font-size: 16px; }
+.waitnote .i { font-size: 22px; color: var(--ridge); animation: spin 2.4s linear infinite; }
+
+/* Admin panel */
+#admin .gatebody h1 { font-size: 28px; letter-spacing: -.8px; }
+#admin-form { display: grid; gap: 6px; }
+#admin-form label { font-size: 13px; font-weight: 600; }
+#admin-panel { display: grid; gap: 14px; }
+.astate { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; justify-content: space-between; }
+.apill { font-weight: 700; font-size: 15px; border-radius: 999px; padding: 6px 14px; border: 2px solid var(--ink); }
+.astate.open .apill { background: var(--ink); color: var(--bg); }
+.aprog { display: grid; gap: 8px; }
+.arow { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) 3ch; gap: 10px; align-items: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.arow b { text-align: right; }
+.abar { display: block; height: 12px; border-radius: 4px; background: var(--shade); overflow: hidden; }
+.abar i { display: block; height: 100%; background: var(--p-yes); border-radius: 4px; transition: width .5s; }
+.link.quiet { color: inherit; font-size: inherit; }
+
 /* Summit: the celebrating hiker. Every jointed part runs on the same 3.6 s loop:
    0-14% crouch, 14-24% jump, 24-38% hang and fall, 38-47% land, 47-100% wave the poles. */
 .card.cheer { background: var(--tile); border-color: transparent; padding: 0; overflow: hidden; text-align: center; }
@@ -539,7 +563,7 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 }
 /* Reduced motion: the reveal still happens, as fades only, with nothing sliding or scaling. */
 @media (prefers-reduced-motion: reduce) {
-  .gear.spin, .drive path, .wp.secret.fresh, .hk-j, .hk-rays, .hk-cloud, .hk-bird, .hk-flap { animation: none; }
+  .gear.spin, .drive path, .wp.secret.fresh, .hk-j, .hk-rays, .hk-cloud, .hk-bird, .hk-flap, .wt-cloud, .waitnote .i { animation: none; }
   /* a still victory pose: arms up, poles in the air */
   .hk-upper { transform: rotate(calc(var(--s) * 150deg)); }
   .hk-fore { transform: rotate(calc(var(--s) * 12deg)); }

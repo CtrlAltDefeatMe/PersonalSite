@@ -32,3 +32,8 @@ It is not linked from the main site and is marked `noindex`.
   dashboard (Table editor > `seedee_votes`, which also exports CSV). Sign-in is by name only, so anyone with the
   link can vote; one answer per person per case, and a person is remembered per browser.
   After changing `setup.sql`, run it again in the SQL editor; it keeps existing votes.
+- The summit page (everyone's results) stays closed until the administrator opens it. People who finish wait on
+  a "summit in the clouds" screen that opens by itself. The admin panel is the "Admin" link in the footer, or
+  `/seedee/#admin`: it shows live progress and one button to open or close the summit. Set the passcode once in
+  the Supabase SQL editor (never in a file in this repository):
+  `update public.seedee_settings set admin_code = 'your-passcode' where id = 1;`

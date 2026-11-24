@@ -922,17 +922,59 @@
     return box;
   }
 
-  function summit(stage, side) {
-    let alive = true;
-    const votes = store.myVotes(), open = unlocked();
-    // The polls on show: the four cases, plus the second vote on D for people who found the hidden path.
-    const POLLS = CASES.map((cs, i) => ({ key: cs.k, label: cs.k, name: 'Case ' + cs.k, step: FIRST_CASE + i }))
-      .concat(open && (revealed || votes.D2) ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
-    const route = h('div', { class: 'route' }, ...POLLS.map(pl => {
+  // The polls on show at the summit: the four cases, plus the second vote on D for people who found the hidden path.
+  function summitPolls(votes) {
+    return CASES.map((cs, i) => ({ key: cs.k, label: cs.k, name: 'Case ' + cs.k, step: FIRST_CASE + i }))
+      .concat(unlocked() && (revealed || votes.D2) ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
+  }
+  function routeRow(polls, votes) {
+    return h('div', { class: 'route' }, ...polls.map(pl => {
       const v = votes[pl.key];
       return h('button', { class: 'rstop', type: 'button', id: 'route-' + pl.key, 'aria-label': pl.name + ': ' + (v ? ANSWERS.find(a => a[0] === v.a)[1] : 'not answered'), on: { click: () => go(pl.step) } },
         h('span', { class: 'ric ' + (v ? v.a : 'none') }, v ? icon(v.a) : 'Vote'), pl.label);
     }));
+  }
+  // The summit shows everyone's results, so the administrator decides when it opens. Until then people
+  // wait here, and the page checks every few seconds and opens by itself.
+  function summit(stage, side) {
+    let alive = true, inner = null, timer = null, waiting = false;
+    function open() {
+      clearInterval(timer); timer = null;
+      stage.replaceChildren(); side.replaceChildren(); detailEl = null;
+      $('cols').classList.remove('solo');
+      $('cap').textContent = STEPS[LAST].t;
+      inner = summitOpen(stage, side);
+    }
+    function wait() {
+      if (waiting) return;
+      waiting = true;
+      const votes = store.myVotes(), cloud = 'M0 14a9 9 0 0 1 9-9 13 13 0 0 1 24-3 10 10 0 0 1 15 6 8 8 0 0 1 2 16H6a8 8 0 0 1-6-10z';
+      const puff = (x, y, sc, cls) => `<g class="wt-cloud ${cls}"><path transform="translate(${x} ${y}) scale(${sc})" d="${cloud}" fill="#ffffff"/></g>`;
+      const scene = h('div', { class: 'panel cloudy' });
+      scene.innerHTML = '<svg viewBox="0 0 480 220" role="img" aria-label="The summit is hidden in cloud.">' +
+        '<path d="M300 220L396 118 480 196V220Z" fill="#e3eefa"/><path d="M0 176L58 122 150 220H0Z" fill="#e3eefa"/>' +
+        '<path d="M0 220L112 132 164 150 240 76 302 136 352 120 480 220Z" fill="#fbfdff" stroke="#4c6e94" stroke-width="1.5" stroke-linejoin="round"/>' +
+        '<line x1="240" y1="76" x2="240" y2="36" stroke="#253650" stroke-width="2.5" stroke-linecap="round"/><path d="M240 38L266 46 240 56Z" fill="#9b3a2c"/>' +
+        puff(150, 20, 2.6, 'a') + puff(232, 48, 2.2, 'b') + puff(96, 70, 1.9, 'b') + puff(262, 6, 1.7, 'a') + puff(190, 84, 1.6, 'a') +
+        '</svg>';
+      $('cap').textContent = 'The summit is still in the clouds.';
+      $('cols').classList.add('solo');
+      stage.replaceChildren(scene,
+        h('div', { class: 'panel waitnote', role: 'status' }, icon('refresh'), h('span', null, 'The results appear here when the summit opens. This page updates by itself.')),
+        h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Your route'), routeRow(summitPolls(votes), votes)));
+    }
+    function check() {
+      store.state().then(st => { if (!alive || inner) return; if (st.open) open(); else wait(); })
+        .catch(() => { if (alive && !inner) wait(); });
+    }
+    check();
+    timer = setInterval(check, 5000);
+    return () => { alive = false; clearInterval(timer); if (inner) inner(); };
+  }
+  function summitOpen(stage, side) {
+    let alive = true;
+    const votes = store.myVotes(), open = unlocked();
+    const POLLS = summitPolls(votes), route = routeRow(POLLS, votes);
     const crowd = h('div', { class: 'crowd' }), tips = h('div', { class: 'tips' });
     const crowdN = h('small'), tipN = h('small');
     if (open && !votes.D2) stage.append(h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'There is another way up.'),
@@ -1043,8 +1085,64 @@
     go(step);
   }
 
+  /* ---------- administrator: open or close the summit ---------- */
+  let adminCode = '', adminTimer = null;
+  function showAdmin() {
+    $('gate').hidden = true; $('journey').hidden = true; $('who').hidden = true; $('admin').hidden = false;
+    try { adminCode = sessionStorage.getItem('seedee.admin') || ''; } catch (e) { adminCode = ''; }
+    $('admin-form').hidden = !!adminCode; $('admin-panel').hidden = !adminCode; $('admin-err').hidden = true;
+    if (adminCode) adminLoad(); else $('admin-code').focus();
+  }
+  function adminLoad(open) {
+    clearInterval(adminTimer);
+    return store.admin(adminCode, open).then(p => {
+      if ($('admin').hidden) return;
+      try { sessionStorage.setItem('seedee.admin', adminCode); } catch (e) { /* keep it for this page only */ }
+      $('admin-form').hidden = true; $('admin-err').hidden = true; $('admin-panel').hidden = false;
+      adminRender(p);
+      adminTimer = setInterval(() => { store.admin(adminCode).then(q => { if (!$('admin').hidden) adminRender(q); }).catch(() => {}); }, 5000);
+    }).catch(e => {
+      const wrong = [400, 401, 403].indexOf(e.status) >= 0;
+      if (wrong) { adminCode = ''; try { sessionStorage.removeItem('seedee.admin'); } catch (x) { /* nothing stored */ } $('admin-form').hidden = false; $('admin-panel').hidden = true; }
+      $('admin-err').textContent = wrong ? 'That passcode is not right.'
+        : e.status === 404 ? 'The database has no admin switch yet. Run the updated setup.sql in Supabase.'
+        : 'Could not reach the database. Check your connection and try again.';
+      $('admin-err').hidden = false;
+    });
+  }
+  function adminRender(p) {
+    const answered = p.answered || {}, max = Math.max(1, p.people || 0);
+    const row = (label, n) => {
+      const fillEl = h('i'); fillEl.style.width = ((n || 0) / max * 100) + '%';
+      return h('div', { class: 'arow' }, h('span', null, label), h('span', { class: 'abar' }, fillEl), h('b', null, String(n || 0)));
+    };
+    $('admin-panel').replaceChildren(
+      h('div', { class: 'astate ' + (p.open ? 'open' : 'closed') }, h('span', { class: 'apill' }, p.open ? 'Summit open' : 'Summit closed'),
+        h('button', { class: p.open ? 'ghost' : 'primary', type: 'button', id: 'admin-toggle', on: { click: () => adminLoad(!p.open) } }, p.open ? 'Close the summit' : 'Open the summit')),
+      h('p', { class: 'fine' }, p.open ? 'Everyone who has finished sees the results.' : 'People who finish wait in the clouds until you open it.'),
+      h('div', { class: 'aprog' },
+        row('Started', p.people), ...CASES.map(cs => row('Case ' + cs.k, answered[cs.k])),
+        row('All four cases', p.done4), row('Hidden path done', p.done5)),
+      h('p', { class: 'fine' }, store.live ? 'Updates every few seconds. "Started" counts people who have answered at least one case.'
+        : 'Preview mode: this switch and these numbers cover this browser only, and any passcode unlocks it.'));
+  }
+  function exitAdmin() {
+    clearInterval(adminTimer);
+    $('admin').hidden = true;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sandboxed frame */ }
+    if (store.me()) enter(stepFromHash()); else showGate(false);
+  }
+
   function start() {
     $('mode').hidden = store.live;
+    $('admin-link').addEventListener('click', showAdmin);
+    $('admin-exit').addEventListener('click', exitAdmin);
+    $('admin-form').addEventListener('submit', e => {
+      e.preventDefault();
+      adminCode = $('admin-code').value; $('admin-code').value = '';
+      if (!adminCode) { $('admin-err').textContent = 'Enter the passcode.'; $('admin-err').hidden = false; return; }
+      adminLoad();
+    });
     buildRidge();
     $('prev').addEventListener('click', () => go(neighbour(state.step, -1)));
     $('next').addEventListener('click', () => go(neighbour(state.step, 1)));
@@ -1056,14 +1154,14 @@
       if (!store.signIn($('name').value)) { $('name-err').hidden = false; $('name').focus(); return; }
       enter(0);
     });
-    window.addEventListener('hashchange', () => { if (!$('journey').hidden) go(stepFromHash()); });
+    window.addEventListener('hashchange', () => { if (location.hash === '#admin') showAdmin(); else if (!$('journey').hidden) go(stepFromHash()); });
     document.addEventListener('keydown', e => {
       if ($('journey').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
       if (e.key === 'ArrowRight' && neighbour(state.step, 1) <= limit() && !(state.step === SECRET && !store.myVotes().D2)) go(neighbour(state.step, 1));
       if (e.key === 'ArrowLeft') go(neighbour(state.step, -1));
     });
-    if (store.me()) enter(stepFromHash()); else showGate(false);
+    if (location.hash === '#admin') showAdmin(); else if (store.me()) enter(stepFromHash()); else showGate(false);
   }
   start();
 })();

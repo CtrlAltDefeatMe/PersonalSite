@@ -9,6 +9,7 @@
   const K_PEOPLE = 'seedee.people'; // { "<name, lower case>": { id, name } }
   const K_ME = 'seedee.me';         // "<name, lower case>"
   const K_VOTES = 'seedee.votes';   // { "<voter id>": { A: { a, c }, ... } }
+  const K_OPEN = 'seedee.open';     // preview mode only: is the summit open?
   const mem = {};
 
   function read(key, fallback) {
@@ -33,7 +34,7 @@
         headers: { 'Content-Type': 'application/json', apikey: cfg.supabaseKey, Authorization: 'Bearer ' + cfg.supabaseKey },
         body: JSON.stringify(body || {})
       });
-      if (!res.ok) throw new Error('Store answered ' + res.status);
+      if (!res.ok) { const err = new Error('Store answered ' + res.status); err.status = res.status; throw err; }
       const text = await res.text();
       return text ? JSON.parse(text) : null;
     } finally { clearTimeout(timer); }
@@ -90,5 +91,25 @@
     return Object.keys(count).map(path => ({ path, n: count[path] }));
   }
 
-  window.SeeDeeStore = { live, me, signIn, signOut, myVotes, cast, totals, paths };
+  // Is the summit (the page with everyone's results) open? The administrator decides.
+  // A database set up before this switch existed has no such function and counts as open.
+  async function state() {
+    if (!live) return { open: !!read(K_OPEN, false) };
+    try { return { open: (await rpc('seedee_state')) === true }; }
+    catch (e) { if (e.status === 404) return { open: true }; throw e; }
+  }
+  // Administrator: checks the passcode, optionally opens or closes the summit, and returns progress:
+  // { open, people, answered: { A, B, C, D, D2 }, done4, done5 }. Rejects with status 403 on a wrong passcode.
+  // In preview mode any passcode works and the switch lives in this browser only.
+  async function admin(code, open) {
+    if (live) return rpc('seedee_admin', open === undefined ? { p_code: code } : { p_code: code, p_open: !!open });
+    if (!code) { const err = new Error('Wrong passcode'); err.status = 403; throw err; }
+    if (open !== undefined) write(K_OPEN, !!open);
+    const all = Object.values(read(K_VOTES, {})), answered = {};
+    POLLS.forEach(k => { answered[k] = all.filter(v => v[k]).length; });
+    return { open: !!read(K_OPEN, false), people: all.filter(v => POLLS.some(k => v[k])).length, answered,
+      done4: all.filter(v => ['A', 'B', 'C', 'D'].every(k => v[k])).length, done5: answered.D2 };
+  }
+
+  window.SeeDeeStore = { live, me, signIn, signOut, myVotes, cast, totals, paths, state, admin };
 })();
