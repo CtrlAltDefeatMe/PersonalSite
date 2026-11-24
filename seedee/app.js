@@ -102,9 +102,10 @@
   let cleanup = null, caseUI = null, pollUI = null;
   // The two secret steps exist only once all four cases have been answered.
   const unlocked = () => { const v = store.myVotes(); return CASES.every(c => v[c.k]); };
-  const shown = i => !STEPS[i].secret || unlocked();
+  const shown = i => !STEPS[i].secret || unlocked() || adminView;
   // The furthest step that may be opened: nobody gets past a case they have not answered.
   function limit() {
+    if (adminView) return LAST; // the administrator may look at any step
     const v = store.myVotes();
     for (let c = 0; c < CASES.length; c++) if (!v[CASES[c].k]) return FIRST_CASE + c;
     return LAST;
@@ -925,7 +926,7 @@
   // The polls on show at the summit: the four cases, plus the second vote on D for people who found the hidden path.
   function summitPolls(votes) {
     return CASES.map((cs, i) => ({ key: cs.k, label: cs.k, name: 'Case ' + cs.k, step: FIRST_CASE + i }))
-      .concat(unlocked() && (revealed || votes.D2) ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
+      .concat(adminView || (unlocked() && (revealed || votes.D2)) ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
   }
   function routeRow(polls, votes) {
     return h('div', { class: 'route' }, ...polls.map(pl => {
@@ -1086,8 +1087,11 @@
   }
 
   /* ---------- administrator: open or close the summit ---------- */
-  let adminCode = '', adminTimer = null;
+  // adminView: set once the passcode has been accepted; lifts the answer-first rule for this tab.
+  // adminReturn: the step the administrator was on before opening the panel.
+  let adminCode = '', adminTimer = null, adminView = false, adminReturn = null;
   function showAdmin() {
+    if (!$('journey').hidden && state.step >= 0) adminReturn = state.step;
     $('gate').hidden = true; $('journey').hidden = true; $('who').hidden = true; $('admin').hidden = false;
     try { adminCode = sessionStorage.getItem('seedee.admin') || ''; } catch (e) { adminCode = ''; }
     $('admin-form').hidden = !!adminCode; $('admin-panel').hidden = !adminCode; $('admin-err').hidden = true;
@@ -1098,6 +1102,7 @@
     return store.admin(adminCode, open).then(p => {
       if ($('admin').hidden) return;
       try { sessionStorage.setItem('seedee.admin', adminCode); } catch (e) { /* keep it for this page only */ }
+      adminView = true;
       $('admin-form').hidden = true; $('admin-err').hidden = true; $('admin-panel').hidden = false;
       adminRender(p);
       adminTimer = setInterval(() => { store.admin(adminCode).then(q => { if (!$('admin').hidden) adminRender(q); }).catch(() => {}); }, 5000);
@@ -1118,7 +1123,9 @@
     };
     $('admin-panel').replaceChildren(
       h('div', { class: 'astate ' + (p.open ? 'open' : 'closed') }, h('span', { class: 'apill' }, p.open ? 'Summit open' : 'Summit closed'),
-        h('button', { class: p.open ? 'ghost' : 'primary', type: 'button', id: 'admin-toggle', on: { click: () => adminLoad(!p.open) } }, p.open ? 'Close the summit' : 'Open the summit')),
+        h('span', { class: 'abtns' },
+          h('button', { class: p.open ? 'ghost' : 'primary', type: 'button', id: 'admin-toggle', on: { click: () => adminLoad(!p.open) } }, p.open ? 'Close the summit' : 'Open the summit'),
+          h('button', { class: p.open ? 'primary' : 'ghost', type: 'button', id: 'admin-summit', on: { click: () => exitAdmin(LAST) } }, 'View the summit', icon('right')))),
       h('p', { class: 'fine' }, p.open ? 'Everyone who has finished sees the results.' : 'People who finish wait in the clouds until you open it.'),
       h('div', { class: 'aprog' },
         row('Started', p.people), ...CASES.map(cs => row('Case ' + cs.k, answered[cs.k])),
@@ -1126,17 +1133,22 @@
       h('p', { class: 'fine' }, store.live ? 'Updates every few seconds. "Started" counts people who have answered at least one case.'
         : 'Preview mode: this switch and these numbers cover this browser only, and any passcode unlocks it.'));
   }
-  function exitAdmin() {
+  // Leaves the panel: to a given step (the summit button), or back to where the administrator was.
+  function exitAdmin(step) {
     clearInterval(adminTimer);
     $('admin').hidden = true;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sandboxed frame */ }
-    if (store.me()) enter(stepFromHash()); else showGate(false);
+    if (!store.me()) {
+      if (step === undefined) { showGate(false); return; }
+      store.signIn('Admin'); // viewing only: no vote is cast, so nothing reaches the results
+    }
+    enter(step !== undefined ? step : adminReturn !== null ? adminReturn : 0);
   }
 
   function start() {
     $('mode').hidden = store.live;
     $('admin-link').addEventListener('click', showAdmin);
-    $('admin-exit').addEventListener('click', exitAdmin);
+    $('admin-exit').addEventListener('click', () => exitAdmin());
     $('admin-form').addEventListener('submit', e => {
       e.preventDefault();
       adminCode = $('admin-code').value; $('admin-code').value = '';
