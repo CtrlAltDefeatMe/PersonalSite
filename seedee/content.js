@@ -177,8 +177,8 @@ window.SeeDee = (function () {
     chart: { a: [-30, -18, -5, 14, 26], b: 12 }
   };
 
-  // Ingredients for a made-up sign-in name, e.g. "Residual Marmot of Appenzell".
-  // 40 x 40 x 30 = 48,000 combinations, so about a hundred people rarely draw the same one.
+  // Ingredients for a made-up sign-in name, e.g. "Residual Marmot of Pikes Peak".
+  // 40 x 40 x 40 = 64,000 combinations, so about a hundred people rarely draw the same one.
   const ALIAS = {
     first: ['Arm’s-Length', 'Residual', 'Routine', 'Tested', 'Comparable', 'Interquartile', 'Benchmark', 'Intangible', 'Limited-Risk', 'Marginal',
       'Uncontrolled', 'Controlled', 'Median', 'Hard-to-Value', 'Low-Risk', 'Entrepreneurial', 'Cost-Plus', 'Resale-Minus', 'Profit-Split', 'Transactional',
@@ -188,9 +188,11 @@ window.SeeDee = (function () {
       'Alphorn', 'Cowbell', 'Gondola', 'Crevasse', 'Summit', 'Sherpa', 'Yeti', 'Snowshoe', 'Pickaxe', 'Fondue',
       'Raclette', 'Gentian', 'Lynx', 'Ptarmigan', 'Stoat', 'Ski Lift', 'Cable Car', 'St. Bernard', 'Dairy Cow', 'Mountain Goat',
       'Rucksack', 'Carabiner', 'Compass', 'Snowflake', 'Larch', 'Pine Marten', 'Bearded Vulture', 'Capercaillie', 'Trail Marker', 'Hiking Boot'],
-    place: ['Appenzell', 'Säntis', 'Schwägalp', 'Wildhaus', 'Urnäsch', 'Toggenburg', 'St. Gallen', 'Altstätten', 'Gais', 'Herisau',
-      'Trogen', 'Teufen', 'Wasserauen', 'Ebenalp', 'Seealpsee', 'Hoher Kasten', 'Kronberg', 'Alpstein', 'Rheintal', 'Bodensee',
-      'Rorschach', 'Heiden', 'Speicher', 'Weissbad', 'Brülisau', 'Unterwasser', 'Churfirsten', 'Walensee', 'Rapperswil', 'Gossau']
+    // Mostly well-known US mountains and mountain places, plus a few famous Swiss ones.
+    place: ['Denali', 'Mount Rainier', 'Mount Whitney', 'Mount Hood', 'Mount Shasta', 'Mount St. Helens', 'Pikes Peak', 'Half Dome', 'El Capitan', 'Grand Teton',
+      'Mount Washington', 'Mauna Kea', 'Longs Peak', 'Mount Elbert', 'Mount Baker', 'Mount Katahdin', 'Yosemite', 'Yellowstone', 'Aspen', 'Vail',
+      'Telluride', 'Jackson Hole', 'Lake Tahoe', 'Sun Valley', 'Park City', 'Big Sky', 'Breckenridge', 'Stowe', 'Mammoth', 'Zion',
+      'the Rockies', 'the Sierra Nevada', 'the Matterhorn', 'the Eiger', 'the Jungfrau', 'the Säntis', 'Zermatt', 'St. Moritz', 'Davos', 'Interlaken']
   };
 
   return { ICON, LANES, PRODUCTS, CASES, HISTORY, ALIAS, ROLES, TEAMS, ANCHORS, BUSINESS, FLOW, PRICE, RISK };
