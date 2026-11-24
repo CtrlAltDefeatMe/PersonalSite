@@ -142,7 +142,8 @@
     prev.hidden = neighbour(i, -1) === i;
     prev.replaceChildren(icon('left'), 'Back');
     // On the reveal page the way forward stays out of sight until the animation has shown it.
-    next.hidden = n === i || (i === ALMOST && !revealed);
+    // On the hidden path the only way on is the button that appears in the poll after voting.
+    next.hidden = n === i || (i === ALMOST && !revealed) || i === SECRET;
     if (n !== i) next.replaceChildren(STEPS[n].k, icon('right'));
     $('count').textContent = (visible.indexOf(i) + 1) + ' / ' + visible.length;
   }
@@ -983,7 +984,7 @@
     document.addEventListener('keydown', e => {
       if ($('journey').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-      if (e.key === 'ArrowRight') go(neighbour(state.step, 1));
+      if (e.key === 'ArrowRight' && !(state.step === SECRET && !store.myVotes().D2)) go(neighbour(state.step, 1));
       if (e.key === 'ArrowLeft') go(neighbour(state.step, -1));
     });
     if (store.me()) enter(stepFromHash()); else showGate(false);
