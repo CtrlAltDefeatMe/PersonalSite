@@ -399,6 +399,8 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 #admin-form label { font-size: 13px; font-weight: 600; }
 #admin-panel { display: grid; gap: 14px; }
 .astate { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; justify-content: space-between; }
+.abtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.abtns .i { font-size: 16px; }
 .apill { font-weight: 700; font-size: 15px; border-radius: 999px; padding: 6px 14px; border: 2px solid var(--ink); }
 .astate.open .apill { background: var(--ink); color: var(--bg); }
 .aprog { display: grid; gap: 8px; }
