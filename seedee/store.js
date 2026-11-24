@@ -4,7 +4,8 @@
   'use strict';
   const cfg = window.SEEDEE_CONFIG || {};
   const live = !!(cfg.supabaseUrl && cfg.supabaseKey);
-  const CASES = ['A', 'B', 'C', 'D'];
+  // The four cases, plus D2: the second vote on Case D after the hidden path.
+  const POLLS = ['A', 'B', 'C', 'D', 'D2'];
   const K_PEOPLE = 'seedee.people'; // { "<name, lower case>": { id, name } }
   const K_ME = 'seedee.me';         // "<name, lower case>"
   const K_VOTES = 'seedee.votes';   // { "<voter id>": { A: { a, c }, ... } }
@@ -66,24 +67,25 @@
   }
 
   function emptyTotals() {
-    const t = {}; CASES.forEach(k => { t[k] = { yes: 0, no: 0, unc: 0 }; }); return t;
+    const t = {}; POLLS.forEach(k => { t[k] = { yes: 0, no: 0, unc: 0 }; }); return t;
   }
   async function totals() {
     const t = emptyTotals();
     if (live) {
       (await rpc('seedee_totals') || []).forEach(r => { if (t[r.case_key] && r.answer in t[r.case_key]) t[r.case_key][r.answer] = Number(r.n) || 0; });
     } else {
-      Object.values(read(K_VOTES, {})).forEach(v => CASES.forEach(k => { if (v[k] && v[k].a in t[k]) t[k][v[k].a]++; }));
+      Object.values(read(K_VOTES, {})).forEach(v => POLLS.forEach(k => { if (v[k] && v[k].a in t[k]) t[k][v[k].a]++; }));
     }
     return t;
   }
-  // [{ path: 'yynu', n: 3 }]: one letter per case A-D (y, n, u, or - for not answered).
+  // [{ path: 'yynuy', n: 3 }]: one letter per poll A, B, C, D, D2 (y, n, u, or - for not answered).
+  // An older database may return only the first four letters.
   async function paths() {
     if (live) return (await rpc('seedee_paths') || []).map(r => ({ path: String(r.path), n: Number(r.n) || 0 }));
     const count = {};
     Object.values(read(K_VOTES, {})).forEach(v => {
-      const path = CASES.map(k => (v[k] ? v[k].a[0] : '-')).join('');
-      if (path !== '----') count[path] = (count[path] || 0) + 1;
+      const path = POLLS.map(k => (v[k] ? v[k].a[0] : '-')).join('');
+      if (path !== '-----') count[path] = (count[path] || 0) + 1;
     });
     return Object.keys(count).map(path => ({ path, n: count[path] }));
   }

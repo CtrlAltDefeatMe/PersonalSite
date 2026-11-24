@@ -90,20 +90,31 @@
     { id: 'people', k: 'The people', t: 'One CEO, five chiefs, eleven directors.', render: people },
     { id: 'rules', k: 'Ground rules', t: 'Four cases. One question each.', render: rules, solo: true }
   ].concat(CASES.map((c, i) => ({ id: 'case-' + c.k.toLowerCase(), k: 'Case ' + c.k, t: c.cap, render: cases, caseIdx: i })),
-    [{ id: 'summit', k: 'Summit', t: 'Where did you tip? Where did everyone else?', render: summit }]);
+    [{ id: 'hidden-path', k: 'Hidden path', t: 'Case D has a history.', render: hiddenPath, secret: true },
+      { id: 'summit', k: 'Summit', t: 'Where did you tip? Where did everyone else?', render: summit }]);
   const FIRST_CASE = STEPS.findIndex(x => x.render === cases);
+  const SECRET = STEPS.findIndex(x => x.secret), LAST = STEPS.length - 1;
   const state = { step: -1 };
-  let cleanup = null, caseUI = null;
+  let cleanup = null, caseUI = null, pollUI = null;
+  // The hidden path shows up only once all four cases have been answered.
+  const unlocked = () => { const v = store.myVotes(); return CASES.every(c => v[c.k]); };
+  const shown = i => !STEPS[i].secret || unlocked();
+  function neighbour(from, dir) {
+    let i = from + dir;
+    while (i >= 0 && i <= LAST && !shown(i)) i += dir;
+    return i < 0 || i > LAST ? from : i;
+  }
 
   function go(i) {
-    i = Math.max(0, Math.min(STEPS.length - 1, i));
+    i = Math.max(0, Math.min(LAST, i));
+    if (!shown(i)) i = LAST;
     const prev = STEPS[state.step], next = STEPS[i];
     if (state.step === i) return;
     state.step = i;
     const keepStage = prev && prev.render === cases && next.render === cases && caseUI;
     if (!keepStage) {
       if (cleanup) { cleanup(); cleanup = null; }
-      caseUI = null; detailEl = null;
+      caseUI = null; detailEl = null; pollUI = null;
       $('stage').replaceChildren(); $('side').replaceChildren();
       $('cols').classList.toggle('solo', !!next.solo);
     }
@@ -121,12 +132,13 @@
     return i < 0 ? 0 : i;
   }
   function renderPager() {
-    const i = state.step, prev = $('prev'), next = $('next');
-    prev.hidden = i === 0;
+    const i = state.step, prev = $('prev'), next = $('next'), n = neighbour(i, 1);
+    const visible = STEPS.map((st, j) => j).filter(shown);
+    prev.hidden = neighbour(i, -1) === i;
     prev.replaceChildren(icon('left'), 'Back');
-    next.hidden = i === STEPS.length - 1;
-    if (i < STEPS.length - 1) next.replaceChildren(STEPS[i + 1].k, icon('right'));
-    $('count').textContent = (i + 1) + ' / ' + STEPS.length;
+    next.hidden = n === i;
+    if (n !== i) next.replaceChildren(STEPS[n].k, icon('right'));
+    $('count').textContent = (visible.indexOf(i) + 1) + ' / ' + visible.length;
   }
 
   /* ---------- ridge stepper ---------- */
@@ -142,24 +154,27 @@
     }
     return RIDGE[RIDGE.length - 1][1];
   }
-  const STOPS = STEPS.map((st, i) => (i < STOP_X.length ? [STOP_X[i], ridgeY(STOP_X[i])] : SUMMIT));
+  // The hidden stop sits on the far side of the summit, reached by a tunnel from Case D.
+  const HIDDEN = [1484, ridgeY(1484)], TUNNEL = [[1398, 318], [1446, 326]];
+  const STOPS = STEPS.map((st, i) => (st.secret ? HIDDEN : st.id === 'summit' ? SUMMIT : [STOP_X[i], ridgeY(STOP_X[i])]));
   const stopEls = [];
-  let climbed = null;
+  let climbed = null, secretLine = null;
   function buildRidge() {
     const ridge = $('ridge');
     climbed = s('polyline', { class: 'climbed' });
+    secretLine = s('polyline', { class: 'secret', points: [STOPS[SECRET - 1]].concat(TUNNEL, [HIDDEN, [1460, 282.5], [1446, 270.5], [1428, 264]]).map(p => p.join(',')).join(' ') });
     ridge.append(s('svg', { viewBox: [VB.x, VB.y, VB.w, VB.h].join(' '), preserveAspectRatio: 'none', 'aria-hidden': 'true' },
       s('polyline', { points: SPUR.map(p => p.join(',')).join(' ') }),
       s('polyline', { points: RIDGE.map(p => p.join(',')).join(' ') }),
       s('polyline', { points: '1428,264 1428,216' }),
-      climbed));
+      secretLine, climbed));
     STEPS.forEach((st, i) => {
-      const kind = st.render === cases ? 'case' : st.id === 'summit' ? 'flag' : 'pip';
+      const kind = st.secret ? 'case secret' : st.render === cases ? 'case' : st.id === 'summit' ? 'flag' : 'pip';
       const b = h('button', {
         class: 'wp ' + kind, type: 'button', id: 'stop-' + st.id, 'aria-label': st.k, title: st.k,
         style: 'left:' + ((STOPS[i][0] - VB.x) / VB.w * 100) + '%;top:' + ((STOPS[i][1] - VB.y) / VB.h * 100) + '%',
         on: { click: () => go(i) }
-      }, kind === 'case' ? CASES[st.caseIdx].k : kind === 'flag' ? icon('flag') : null);
+      }, st.secret ? icon('key') : kind === 'case' ? CASES[st.caseIdx].k : kind === 'flag' ? icon('flag') : null);
       stopEls.push(b); ridge.append(b);
     });
   }
@@ -169,11 +184,15 @@
       b.setAttribute('aria-current', j === i ? 'true' : 'false');
       b.classList.toggle('done', j < i);
       const old = b.querySelector('.badge'); if (old) old.remove();
-      const st = STEPS[j];
-      if (st.render === cases && votes[CASES[st.caseIdx].k]) b.append(h('span', { class: 'badge' }, icon(votes[CASES[st.caseIdx].k].a)));
+      const st = STEPS[j], key = st.secret ? 'D2' : st.render === cases ? CASES[st.caseIdx].k : null;
+      if (key && votes[key]) b.append(h('span', { class: 'badge' }, icon(votes[key].a)));
+      if (st.secret) { b.hidden = !shown(j); b.classList.toggle('fresh', !votes.D2 && j !== i); }
     });
-    const x = STOPS[i][0], pts = RIDGE.filter(p => p[0] < Math.min(x, 1428));
-    if (STEPS[i].id === 'summit') pts.push([1428, 264], SUMMIT); else pts.push(STOPS[i]);
+    secretLine.style.display = shown(SECRET) ? '' : 'none';
+    const x = STEPS[i].secret ? STOPS[SECRET - 1][0] : STOPS[i][0], pts = RIDGE.filter(p => p[0] < Math.min(x, 1428));
+    if (STEPS[i].id === 'summit') pts.push([1428, 264], SUMMIT);
+    else if (STEPS[i].secret) pts.push(STOPS[SECRET - 1], TUNNEL[0], TUNNEL[1], HIDDEN);
+    else pts.push(STOPS[i]);
     climbed.setAttribute('points', pts.map(p => p.join(',')).join(' '));
   }
 
@@ -551,7 +570,8 @@
       h('span', null, h('b', { class: 'chip dir', style: 'background:var(--a-soft);color:var(--a-ink)' }, 'Sales'), 'Director'),
       h('span', null, h('i', { class: 'dot', style: 'background:var(--a)' }), h('i', { class: 'dot', style: 'background:var(--a)' }), h('i', { class: 'dot', style: 'background:var(--a)' }), 'Team (not to scale)'),
       h('span', null, h('i', { class: 'ring' }), 'Moved in this case')));
-    side.append(detailCard('Tap a chip, a team or a badge.'), ui.poll);
+    ui.note = h('div');
+    side.append(detailCard('Tap a chip, a team or a badge.'), ui.note, ui.poll);
     casesUpdate(false);
   }
   function casesUpdate(animate) {
@@ -562,7 +582,8 @@
       first.set(el, { r: el.getBoundingClientRect(), bg: cs.backgroundColor, fg: cs.color });
     });
     casePlace(c);
-    caseDetail(); renderPoll();
+    pollUI = { el: ui.poll, key: CASES[c].k, token: 0, question: QUESTION, onVote: secretNote };
+    caseDetail(); renderPoll(); secretNote();
     if (!first.size) return;
     let n = 0;
     ui.movers.forEach(el => {
@@ -644,31 +665,46 @@
   function countsRow(t) {
     return h('div', { class: 'counts' }, ...ANSWERS.map(([k]) => h('span', null, icon(k), String(t[k]))));
   }
+  // Tells the reader on a case screen that the hidden path has opened.
+  function secretNote() {
+    if (!caseUI) return;
+    const open = unlocked() && !store.myVotes().D2;
+    caseUI.note.replaceChildren(open ? h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'A hidden path has opened.'),
+      h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, 'Take it', icon('right'))) : '');
+  }
+  // Draws the poll described by pollUI: { el, key, question, locked, compare, onVote }.
   function renderPoll(status) {
-    const ui = caseUI, c = STEPS[state.step].caseIdx, key = CASES[c].k, mine = store.myVotes()[key];
-    const token = ++ui.token;
-    ui.poll.replaceChildren(h('h2', null, QUESTION),
-      h('div', { class: 'opts' }, ...ANSWERS.map(([k, label]) =>
-        h('button', { class: 'opt', type: 'button', id: 'vote-' + k, 'aria-pressed': String(!!mine && mine.a === k), on: { click: () => vote(k) } }, icon(k), label))));
+    const pu = pollUI;
+    if (!pu) return;
+    const key = pu.key, votes = store.myVotes(), mine = votes[key], token = ++pu.token;
+    pu.el.replaceChildren(h('h2', null, pu.question));
+    if (pu.locked) { pu.el.append(h('p', { class: 'status' }, pu.locked)); return; }
+    pu.el.append(h('div', { class: 'opts' }, ...ANSWERS.map(([k, label]) =>
+      h('button', { class: 'opt', type: 'button', id: 'vote-' + k, 'aria-pressed': String(!!mine && mine.a === k), on: { click: () => vote(k) } }, icon(k), label))));
     if (!mine) return;
     const results = h('div', null, h('div', { class: 'bar empty' }));
-    const why = h('textarea', { class: 'why', id: 'why-' + key, rows: 2, maxlength: 2000, placeholder: 'Why? (optional)', 'aria-label': 'Your comment on Case ' + key });
+    const why = h('textarea', { class: 'why', id: 'why-' + key, rows: 2, maxlength: 2000, placeholder: 'Why? (optional)', 'aria-label': 'Your comment' });
     why.value = mine.c || '';
     const stat = h('p', { class: 'status' + (status && status.bad ? ' bad' : ''), role: 'status' }, status ? status.text : '');
     const save = h('button', { class: 'ghost', type: 'button', id: 'save-note', on: { click: () => vote(mine.a, why.value) } }, 'Save note');
-    const row = h('div', { class: 'pollrow' }, save);
-    if (state.step < STEPS.length - 1) row.append(h('button', { class: 'primary', type: 'button', id: 'poll-next', on: { click: () => go(state.step + 1) } }, STEPS[state.step + 1].k, icon('right')));
-    ui.poll.append(results, why, row, stat);
+    const row = h('div', { class: 'pollrow' }, save), n = neighbour(state.step, 1);
+    if (n !== state.step) row.append(h('button', { class: 'primary', type: 'button', id: 'poll-next', on: { click: () => go(neighbour(state.step, 1)) } }, STEPS[n].k, icon('right')));
+    pu.el.append(results, why, row, stat);
     store.totals().then(all => {
-      if (!caseUI || caseUI.token !== token) return;
-      results.replaceChildren(crowdBar(all[key], mine.a).bar, countsRow(all[key]));
+      if (pollUI !== pu || pu.token !== token) return;
+      if (!pu.compare) { results.replaceChildren(crowdBar(all[key], mine.a).bar, countsRow(all[key])); return; }
+      const before = votes.D ? votes.D.a : null;
+      results.replaceChildren(
+        h('div', { class: 'cmp' }, h('span', null, 'Case D'), crowdBar(all.D, before).bar),
+        h('div', { class: 'cmp' }, h('span', null, 'With its history'), crowdBar(all.D2, mine.a).bar), countsRow(all.D2),
+        before ? h('p', { class: 'shift' }, 'You: ', h('span', { class: 'pi ' + before }, icon(before)), icon('right'), h('span', { class: 'pi ' + mine.a }, icon(mine.a))) : null);
     }).catch(() => {
-      if (!caseUI || caseUI.token !== token) return;
+      if (pollUI !== pu || pu.token !== token) return;
       results.replaceChildren(h('p', { class: 'status' }, 'Totals are not available right now.'));
     });
   }
   async function vote(answer, comment) {
-    const c = STEPS[state.step].caseIdx, key = CASES[c].k, prev = store.myVotes()[key];
+    const pu = pollUI, key = pu.key, prev = store.myVotes()[key];
     const note = comment !== undefined ? comment : (document.getElementById('why-' + key) || {}).value || (prev ? prev.c : '');
     let status;
     try {
@@ -677,22 +713,101 @@
     } catch (e) {
       status = { bad: true, text: 'Kept in this browser, but not sent. Check your connection and tap your answer again.' };
     }
-    if (!caseUI || STEPS[state.step].caseIdx !== c) return;
-    renderPoll(status); renderRidge();
+    if (pollUI !== pu) return;
+    renderPoll(status); renderRidge(); renderPager();
+    if (pu.onVote) pu.onVote();
+  }
+
+  /* ---------- step: the hidden path ---------- */
+  // Case D's history as a trail with eight waypoints. Walking to the end unlocks a second vote on Case D.
+  let walked = -1;
+  function hiddenPath(stage, side) {
+    const H = D.HISTORY, last = H.beats.length - 1;
+    if (store.myVotes().D2) walked = last;
+    let at = walked, mode = null;
+    const box = h('div', { class: 'panel' }), story = h('div', { class: 'panel story', 'aria-live': 'polite' });
+    const pu = pollUI = { el: h('section', { class: 'card poll' }), key: 'D2', token: 0, compare: true,
+      question: 'Knowing this history: can the transfer price be set or tested with CPM / TNMM, with Company B as the tested party?',
+      locked: walked < last ? 'Walk the hidden path to vote again.' : null };
+    stage.append(box, story);
+    side.append(pu.el);
+    const WIDE = { W: 760, H: 330, pts: [[50, 64], [190, 262], [292, 276], [384, 232], [472, 188], [560, 142], [642, 96], [716, 46]] };
+    const TALL = { W: 400, H: 430, pts: [[44, 52], [112, 318], [184, 338], [236, 286], [280, 232], [318, 178], [350, 122], [372, 58]] };
+    const poly = pts => pts.map(p => p.join(',')).join(' ');
+    function drawMap() {
+      const L = mode === 'wide' ? WIDE : TALL, p = L.pts, top = p[last];
+      const svg = s('svg', { class: 'trailsvg ' + mode, viewBox: '0 0 ' + L.W + ' ' + L.H, role: 'group', 'aria-label': 'The hidden path' },
+        s('polygon', { class: 'terrain', points: poly([[0, p[0][1] + 14]].concat(p, [[L.W, top[1] + 46], [L.W, L.H], [0, L.H]])) }),
+        s('polyline', { class: 'tpath', points: poly(p) }),
+        s('polyline', { class: 'twalked', points: poly(p.slice(0, Math.max(at, 0) + 1)) }));
+      H.beats.forEach((b, i) => {
+        const [x, y] = p[i];
+        if (i > walked && i > 0) { svg.append(s('circle', { class: 'tdot', cx: x, cy: y, r: 5 })); return; }
+        const lab = i === 0 ? { x: x + 22, y: y + 5, a: 'start' } : i < 3 ? { x, y: y + 34, a: 'middle' } : { x: x - 20, y: y - 10, a: 'end' };
+        const g = s('g', { class: 'tw' + (i === Math.max(at, 0) ? ' now' : ''), id: 'way-' + i, transform: 'translate(' + x + ' ' + y + ')' }, s('circle', { r: 16 }), sicon(b.icon, 0, 0, 20));
+        pressable(g, b.label, () => { at = i; render(); });
+        svg.append(g, s('text', { class: 'tlabel', x: lab.x, y: lab.y, 'text-anchor': lab.a }, b.label));
+      });
+      box.replaceChildren(svg);
+    }
+    function chart(span) {
+      const C = H.chart, svg = s('svg', { class: 'yrs', viewBox: '0 0 300 132', role: 'img', 'aria-label': 'Company B keeps the same routine return each year. Company A makes losses in years 1 to 3 and profits from year 4.' },
+        s('line', { class: 'zero', x1: 12, x2: 288, y1: 78, y2: 78 }));
+      C.a.forEach((v, i) => {
+        const x = 26 + i * 54, on = i >= span[0] && i <= span[1], hgt = Math.abs(v) * 1.4;
+        svg.append(s('text', { class: on ? 'strong' : null, x: x + 17, y: 12, 'text-anchor': 'middle' }, 'Y' + (i + 1)),
+          s('rect', { class: 'cb' + (on ? '' : ' dimmed'), x, y: 78 - C.b * 1.4, width: 16, height: C.b * 1.4, rx: 2 }),
+          s('rect', { class: 'ca' + (on ? '' : ' dimmed'), x: x + 18, y: v < 0 ? 78 : 78 - hgt, width: 16, height: hgt, rx: 2 }));
+      });
+      return h('div', { class: 'yrswrap' }, svg, h('div', { class: 'legend' },
+        h('span', null, h('i', { class: 'sw', style: 'background:var(--a)' }), 'Company A'), h('span', null, h('i', { class: 'sw', style: 'background:var(--b)' }), 'Company B'), h('span', null, 'Illustrative.')));
+    }
+    function render() {
+      drawMap();
+      const b = at < 0 ? H.intro : H.beats[at];
+      const list = h('ul');
+      b.lines.forEach(l => {
+        const t = typeof l === 'string' ? { t: l } : l;
+        list.append(h('li', null, t.who ? h('b', { class: 'cbadge ' + t.who.toLowerCase(), title: 'Company ' + t.who }, t.who) : h('span', { class: 'pt' }, '•'), h('span', null, t.t)));
+      });
+      const nav = h('div', { class: 'storynav' });
+      if (at >= 0) nav.append(h('button', { class: 'ghost', type: 'button', id: 'walk-back', on: { click: () => { at -= 1; render(); } } }, icon('left'), 'Back'));
+      if (at < last) nav.append(h('button', { class: 'primary', type: 'button', id: 'walk-on', on: { click: walkOn } }, at < 0 ? 'Start the walk' : 'Walk on', icon('right')));
+      else nav.append(h('span', { class: 'votenow' }, icon('key'), 'Now vote on Case D again.'));
+      story.replaceChildren(h('div', { class: 'when' }, at < 0 ? 'Hidden path' : b.when + ' · ' + (at + 1) + ' / ' + (last + 1)), h('h2', null, b.title), list, ...(b.chart ? [chart(b.chart)] : []), nav);
+    }
+    function walkOn() {
+      at += 1;
+      if (at > walked) walked = at;
+      if (walked === last && pu.locked) { pu.locked = null; renderPoll(); }
+      render();
+    }
+    function fit() {
+      const next = box.clientWidth >= 560 ? 'wide' : 'tall';
+      if (next !== mode) { mode = next; render(); }
+    }
+    fit(); renderPoll();
+    const ro = new ResizeObserver(fit); ro.observe(box);
+    return () => ro.disconnect();
   }
 
   /* ---------- step: summit ---------- */
   function summit(stage, side) {
     let alive = true;
-    const votes = store.myVotes();
-    const route = h('div', { class: 'route' }, ...CASES.map((cs, i) => {
-      const v = votes[cs.k];
-      return h('button', { class: 'rstop', type: 'button', id: 'route-' + cs.k, 'aria-label': 'Case ' + cs.k + ': ' + (v ? ANSWERS.find(a => a[0] === v.a)[1] : 'not answered'), on: { click: () => go(FIRST_CASE + i) } },
-        h('span', { class: 'ric ' + (v ? v.a : 'none') }, v ? icon(v.a) : 'Vote'), cs.k);
+    const votes = store.myVotes(), open = unlocked();
+    // The polls on show: the four cases, plus the second vote on D for people who found the hidden path.
+    const POLLS = CASES.map((cs, i) => ({ key: cs.k, label: cs.k, name: 'Case ' + cs.k, step: FIRST_CASE + i }))
+      .concat(open ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
+    const route = h('div', { class: 'route' }, ...POLLS.map(pl => {
+      const v = votes[pl.key];
+      return h('button', { class: 'rstop', type: 'button', id: 'route-' + pl.key, 'aria-label': pl.name + ': ' + (v ? ANSWERS.find(a => a[0] === v.a)[1] : 'not answered'), on: { click: () => go(pl.step) } },
+        h('span', { class: 'ric ' + (v ? v.a : 'none') }, v ? icon(v.a) : 'Vote'), pl.label);
     }));
     const crowd = h('div', { class: 'crowd' }), tips = h('div', { class: 'tips' });
     const crowdN = h('small'), tipN = h('small');
     stage.append(
+      open && !votes.D2 ? h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'A hidden path has opened.'),
+        h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, 'Take it', icon('right'))) : null,
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Your route'), route),
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Everyone', crowdN), crowd),
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'First case that is not a Yes', tipN), tips),
@@ -711,24 +826,39 @@
       showDetail(null);
       crowd.replaceChildren(); tips.replaceChildren();
       let most = 0;
-      CASES.forEach((cs, i) => {
-        const t = all[cs.k], mine = votes[cs.k] ? votes[cs.k].a : null, cb = crowdBar(t, mine);
+      // People who answered Case D twice: how many changed their answer after the history.
+      const both = paths.filter(p => /^[ynu-]{3}[ynu]{2}$/.test(p.path));
+      const bothN = both.reduce((a, p) => a + p.n, 0), movedN = both.filter(p => p.path[3] !== p.path[4]).reduce((a, p) => a + p.n, 0);
+      const moves = {};
+      both.forEach(p => { const k = p.path[3] + p.path[4]; moves[k] = (moves[k] || 0) + p.n; });
+      POLLS.forEach(pl => {
+        const t = all[pl.key], mine = votes[pl.key] ? votes[pl.key].a : null, cb = crowdBar(t, mine);
         most = Math.max(most, cb.n);
         const wrap = h('div', { class: 'bwrap' }, cb.bar);
         if (cb.you !== null) { const y = h('span', { class: 'you' }, 'You'); y.style.left = cb.you + '%'; wrap.append(y); }
-        const row = h('button', { class: 'crow', type: 'button', id: 'crowd-' + cs.k, on: { click: () => {
+        const row = h('button', { class: 'crow', type: 'button', id: 'crowd-' + pl.key, on: { click: () => {
           clearSel(); row.classList.add('sel');
-          showDetail({ title: 'Case ' + cs.k, tag: cb.n + (cb.n === 1 ? ' answer' : ' answers'),
-            lines: cb.n ? ANSWERS.map(([k, label]) => label + ': ' + t[k] + ' (' + Math.round(t[k] / cb.n * 100) + '%)') : ['No answers yet.'],
-            extra: h('button', { class: 'ghost act', type: 'button', on: { click: () => go(FIRST_CASE + i) } }, 'Open Case ' + cs.k, icon('right')) });
-        } } }, h('span', { class: 'cl' }, cs.k), wrap, h('span', { class: 'cn' }, String(cb.n)));
+          const lines = cb.n ? ANSWERS.map(([k, label]) => label + ': ' + t[k] + ' (' + Math.round(t[k] / cb.n * 100) + '%)') : ['No answers yet.'];
+          const extra = h('div', null);
+          if (pl.key === 'D2' && bothN) {
+            lines.push(movedN + ' of ' + bothN + (bothN === 1 ? ' person' : ' people') + ' changed their answer on Case D.');
+            const list = h('div', { class: 'paths' });
+            Object.keys(moves).sort((p, q) => moves[q] - moves[p]).forEach(k => list.append(h('div', null,
+              h('span', { class: 'pi ' + LETTER[k[0]] }, icon(LETTER[k[0]])), icon('right'), h('span', { class: 'pi ' + LETTER[k[1]] }, icon(LETTER[k[1]])), '× ' + moves[k])));
+            extra.append(list);
+          }
+          extra.append(h('button', { class: 'ghost act', type: 'button', on: { click: () => go(pl.step) } }, pl.key === 'D2' ? 'Open the hidden path' : 'Open ' + pl.name, icon('right')));
+          showDetail({ title: pl.name, tag: cb.n + (cb.n === 1 ? ' answer' : ' answers'), lines, extra });
+        } } }, h('span', { class: 'cl' }, pl.label), wrap, h('span', { class: 'cn' }, String(cb.n)));
         crowd.append(row);
       });
       crowdN.textContent = most ? 'up to ' + most + (most === 1 ? ' answer' : ' answers') : '';
       if (!most) crowd.append(h('p', { class: 'empty' }, 'No answers yet.'));
 
       // Tipping point: the first case a person did not answer Yes. Only complete four-case routes count.
-      const full = paths.filter(p => /^[ynu]{4}$/.test(p.path));
+      const four = {};
+      paths.forEach(p => { const k = p.path.slice(0, 4); four[k] = (four[k] || 0) + p.n; });
+      const full = Object.keys(four).filter(k => /^[ynu]{4}$/.test(k)).map(k => ({ path: k, n: four[k] }));
       const buckets = [0, 1, 2, 3, 4].map(() => ({ n: 0, paths: [] }));
       full.forEach(p => { const at = p.path.search(/[nu]/); const b = buckets[at < 0 ? 4 : at]; b.n += p.n; b.paths.push(p); });
       const total = full.reduce((a, p) => a + p.n, 0), max = Math.max(1, ...buckets.map(b => b.n));
@@ -765,7 +895,12 @@
     $('gate-note').textContent = store.live
       ? 'Everyone sees the totals. Only Thomas sees names and comments.'
       : 'Preview mode: votes stay in this browser.';
+    $('name').placeholder = alias();
     if (switching) $('name').focus();
+  }
+  function alias() {
+    const pick = list => list[Math.floor(Math.random() * list.length)];
+    return pick(D.ALIAS.first) + ' ' + pick(D.ALIAS.second);
   }
   function enter(step) {
     const me = store.me();
@@ -773,15 +908,16 @@
     $('who-name').textContent = me.name;
     state.step = -1;
     if (cleanup) { cleanup(); cleanup = null; }
-    caseUI = null;
+    caseUI = null; pollUI = null; walked = -1;
     go(step);
   }
 
   function start() {
     $('mode').hidden = store.live;
     buildRidge();
-    $('prev').addEventListener('click', () => go(state.step - 1));
-    $('next').addEventListener('click', () => go(state.step + 1));
+    $('prev').addEventListener('click', () => go(neighbour(state.step, -1)));
+    $('next').addEventListener('click', () => go(neighbour(state.step, 1)));
+    $('alias').addEventListener('click', () => { $('name').value = alias(); $('name-err').hidden = true; $('name').focus(); });
     $('who').addEventListener('click', () => showGate(true));
     $('gate-cancel').addEventListener('click', () => enter(stepFromHash()));
     $('signin').addEventListener('submit', e => {
@@ -793,8 +929,8 @@
     document.addEventListener('keydown', e => {
       if ($('journey').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-      if (e.key === 'ArrowRight') go(state.step + 1);
-      if (e.key === 'ArrowLeft') go(state.step - 1);
+      if (e.key === 'ArrowRight') go(neighbour(state.step, 1));
+      if (e.key === 'ArrowLeft') go(neighbour(state.step, -1));
     });
     if (store.me()) enter(stepFromHash()); else showGate(false);
   }

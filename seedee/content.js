@@ -37,7 +37,9 @@ window.SeeDee = (function () {
     car: 'M3 13l2-5h14l2 5v5H3zM3 13h18M7 18v2M17 18v2M7 15.5h.01M17 15.5h.01',
     plane: 'M12 2c1 0 1.5 1 1.5 2.5V9l7.5 4.5v2l-7.5-2V18l2.5 2v1.5l-4-1-4 1V20l2.5-2v-4.5l-7.5 2v-2L10.5 9V4.5C10.5 3 11 2 12 2z',
     cpu: 'M7 7h10v10H7zM10 10h4v4h-4zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4',
-    digger: 'M3 18h12a2 2 0 0 0 0-4H3a2 2 0 0 0 0 4zM5 14V9h5l2 5M14 12l5-7 2 4-2 2'
+    digger: 'M3 18h12a2 2 0 0 0 0-4H3a2 2 0 0 0 0 4zM5 14V9h5l2 5M14 12l5-7 2 4-2 2',
+    key: 'M21 8.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0zM15 11L4 21M6.5 18.7l2 2.2M9.5 16l2 2.2',
+    dice: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01'
   };
 
   const LANES = [
@@ -133,5 +135,54 @@ window.SeeDee = (function () {
     b: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   };
 
-  return { ICON, LANES, PRODUCTS, CASES, ROLES, TEAMS, ANCHORS, BUSINESS, FLOW, PRICE, RISK };
+  // The hidden path: Case D's history, told as a trail. It opens once all four cases are answered.
+  // who: the company the actor sits in.
+  const HISTORY = {
+    intro: { title: 'Case D, again', lines: [
+      'Almost all the people are in Company B. Company A has the CEO, the CLO and some support staff.',
+      'Most practitioners say No here, and Country B’s tax authority can be expected to push back.',
+      'But this group has a history.'] },
+    beats: [
+      { label: 'Heyday', icon: 'star', when: 'Long before', title: 'SeeDee, on its own', lines: [
+        { who: 'B', t: 'Company B used to be an independent company called SeeDee.' },
+        { t: 'It was successful for many years.' }] },
+      { label: 'Decline', icon: 'down', when: 'Then', title: 'Hard times', lines: [
+        { t: 'Manufacturing was no longer cost competitive. Quality and service slipped.' },
+        { t: 'Losses, a shrinking market share and grim expectations.' },
+        { t: 'Still some valuable IP and good engineers, but too little money for R&D.' }] },
+      { label: 'The bid', icon: 'cust', when: 'The deal', title: 'Olivia and Emily', lines: [
+        { who: 'A', t: 'Olivia, an experienced industry leader, and Emily, a savvy legal adviser, set up Company A with outside investors and lenders.' },
+        { who: 'A', t: 'Olivia becomes CEO. Emily becomes CLO.' },
+        { t: 'Company A buys SeeDee for 100. The group is renamed O.E. SeeDee.' }] },
+      { label: 'IP moves', icon: 'ip', when: 'Soon after', title: 'The IP moves to A', lines: [
+        { t: 'All non-routine IP is transferred from B to A.' },
+        { t: 'It is valued with the acquisition price method. Assume nobody questions the price.' },
+        { who: 'A', t: 'From now on, Company A funds all IP development that B carries out.' }] },
+      { label: 'New team', icon: 'swap', when: 'Turnaround', title: 'New leaders in B', lines: [
+        { who: 'A', t: 'Olivia and Emily replace much of B’s old leadership.' },
+        { who: 'B', t: 'The new hires get a mandate: lower costs, better quality, better service, more innovation.' }] },
+      { label: 'The fix', icon: 'wrench', when: 'Turnaround', title: 'Who did what', lines: [
+        { who: 'A', t: 'Olivia and Emily use their industry contacts to find a far cheaper contract manufacturer.' },
+        { who: 'B', t: 'The new supply chain chief carries out their strategy.' },
+        { who: 'A', t: 'Emily helps negotiate the sourcing agreement and the new intercompany supply policy.' },
+        { who: 'B', t: 'The new quality director, directed by Olivia, builds a better quality program with the supplier.' },
+        { who: 'A', t: 'Olivia visits customers to explain the changes.' }] },
+      { label: 'Lean years', icon: 'fin', when: 'Years 1 to 3', title: 'Company A pays the bill', chart: [0, 2], lines: [
+        { who: 'A', t: 'Company A funds B’s losses and below-routine profits for three years.' }] },
+      { label: 'Year 5', icon: 'flag', when: 'Year 5', title: 'Thriving', chart: [3, 4], lines: [
+        { t: 'Residual profits since year 4, and expected to continue.' },
+        { t: 'The people sit exactly as in Case D.' },
+        { t: 'The pricing is unchanged: all residual profit goes to Company A.' }] }
+    ],
+    // Illustrative results by year under the pricing policy: B keeps a routine return, A takes the rest.
+    chart: { a: [-30, -18, -5, 14, 26], b: 12 }
+  };
+
+  // Ingredients for a made-up sign-in name.
+  const ALIAS = {
+    first: ['Arm’s-Length', 'Residual', 'Routine', 'Tested', 'Comparable', 'Interquartile', 'Benchmark', 'Intangible', 'Limited-Risk', 'Marginal'],
+    second: ['Marmot', 'Ibex', 'Alpinist', 'Yodeler', 'Edelweiss', 'Chamois', 'Glacier', 'Eagle', 'Mountaineer', 'Avalanche']
+  };
+
+  return { ICON, LANES, PRODUCTS, CASES, HISTORY, ALIAS, ROLES, TEAMS, ANCHORS, BUSINESS, FLOW, PRICE, RISK };
 })();

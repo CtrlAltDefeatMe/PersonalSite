@@ -18,7 +18,8 @@ An interactive walk-through of the O.E. SeeDee transfer pricing case, with a pol
 It is not linked from the main site and is marked `noindex`.
 
 - `seedee/index.html`, `seedee/seedee.css`, `seedee/app.js`: the page. Visitors sign in with a name, step through
-  the case along the Säntis ridge, and answer Yes / No / Unclear for Cases A to D.
+  the case along the Säntis ridge, and answer Yes / No / Unclear for Cases A to D. Once all four are answered,
+  a hidden path opens: Case D's history, followed by a second vote on Case D (stored as `D2`).
 - `seedee/content.js`: the case facts. Numbers used only to draw pictures are marked illustrative.
 - `seedee/store.js`, `seedee/config.js`: where votes go. With `config.js` empty the page runs in preview mode and
   votes stay in the visitor's browser.
@@ -30,3 +31,4 @@ It is not linked from the main site and is marked `noindex`.
   The public key can only cast a vote and read totals. Names and comments are visible only in the Supabase
   dashboard (Table editor > `seedee_votes`, which also exports CSV). Sign-in is by name only, so anyone with the
   link can vote; one answer per person per case, and a person is remembered per browser.
+  After changing `setup.sql`, run it again in the SQL editor; it keeps existing votes.

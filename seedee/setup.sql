@@ -1,5 +1,6 @@
 -- O.E. SeeDee poll: storage for herr.net/seedee/
--- Run once in the Supabase SQL editor, then put the project URL and anon key in config.js.
+-- Run in the Supabase SQL editor, then put the project URL and public key in config.js.
+-- Safe to run again after an update: it keeps existing votes.
 --
 -- The public (anon key) can only call the three functions below: cast a vote, read totals,
 -- read answer patterns. Names and comments are readable only from the Supabase dashboard
@@ -8,13 +9,18 @@
 create table if not exists public.seedee_votes (
   voter      uuid        not null,
   name       text        not null check (char_length(name) between 1 and 80),
-  case_key   text        not null check (case_key in ('A', 'B', 'C', 'D')),
+  case_key   text        not null check (case_key in ('A', 'B', 'C', 'D', 'D2')),
   answer     text        not null check (answer in ('yes', 'no', 'unc')),
   comment    text        check (comment is null or char_length(comment) <= 2000),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (voter, case_key)
 );
+
+-- D2 is the second vote on Case D, taken after the hidden path. This also upgrades an older table.
+alter table public.seedee_votes drop constraint if exists seedee_votes_case_key_check;
+alter table public.seedee_votes add constraint seedee_votes_case_key_check
+  check (case_key in ('A', 'B', 'C', 'D', 'D2'));
 
 alter table public.seedee_votes enable row level security;
 revoke all on table public.seedee_votes from anon, authenticated;
@@ -37,14 +43,14 @@ language sql stable security definer set search_path = public as $$
   select v.case_key, v.answer, count(*) from seedee_votes v group by v.case_key, v.answer;
 $$;
 
--- How many people gave each four-case pattern, e.g. 'yynn'. '-' marks a case not answered. No names.
+-- How many people gave each answer pattern for A, B, C, D, D2, e.g. 'yynny'. '-' marks no answer. No names.
 create or replace function public.seedee_paths()
 returns table (path text, n bigint)
 language sql stable security definer set search_path = public as $$
   select s.path, count(*) from (
-    select p.voter, string_agg(coalesce(left(v.answer, 1), '-'), '' order by c.k) as path
+    select p.voter, string_agg(coalesce(left(v.answer, 1), '-'), '' order by c.ord) as path
     from (select distinct voter from seedee_votes) p
-    cross join (values ('A'), ('B'), ('C'), ('D')) as c(k)
+    cross join (values ('A', 1), ('B', 2), ('C', 3), ('D', 4), ('D2', 5)) as c(k, ord)
     left join seedee_votes v on v.voter = p.voter and v.case_key = c.k
     group by p.voter
   ) s group by s.path;
