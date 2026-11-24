@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="An interactive transfer pricing case study: explore O.E. SeeDee, then vote on four scenarios.">
+  <title>O.E. SeeDee Case Study</title>
+  <link rel="icon" href="../th-tab-icon.svg" type="image/svg+xml" sizes="any">
+  <link rel="icon" href="../th-tab-icon-32.png" type="image/png" sizes="32x32">
+  <link rel="stylesheet" href="seedee.css?v=20261124l">
+  <script src="config.js?v=20261124l" defer></script>
+  <script src="store.js?v=20261124l" defer></script>
+  <script src="content.js?v=20261124l" defer></script>
+  <script src="app.js?v=20261124l" defer></script>
+</head>
+<body>
+<!--page:start-->
+<div class="page">
+  <header class="top">
+    <a class="home" href="https://www.herr.net/" aria-label="Thomas Herr — home">
+      <svg class="mark" viewBox="210 204.5 835 835" aria-hidden="true">
+        <defs>
+          <linearGradient id="steel" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(248 343) scale(597 558)"><stop stop-color="#587caa"/><stop offset="1" stop-color="#42628c"/></linearGradient>
+          <linearGradient id="navy" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(598 343) scale(409 558)"><stop stop-color="#2e4268"/><stop offset="1" stop-color="#233351"/></linearGradient>
+        </defs>
+        <path fill="url(#steel)" d="M248 343H845L744 442H248Z"/><path fill="url(#steel)" d="M452 442H577V901H452Z"/>
+        <path fill="url(#navy)" d="M598 557H868V666H598Z"/><path fill="url(#navy)" d="M868 343H1007V901H868Z"/>
+      </svg>
+    </a>
+    <span class="brand">O.E. SeeDee</span>
+    <span class="mode" id="mode" hidden>Preview</span>
+    <button class="who" id="who" type="button" hidden aria-label="Switch person">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg>
+      <span id="who-name"></span>
+    </button>
+  </header>
+
+  <section class="gate" id="gate" hidden>
+    <svg class="banner" viewBox="0 150 2171 424" role="img" aria-label="TH monogram beside a line drawing of the Säntis ridge">
+      <g fill="none" stroke="#4c6e94" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M760 491 L800 475 L834 461.5 L852 459 L878 450 L912 433.5 L926 425.5 L934 421.5 L947 424 L970 430 L991 421.5 L999 415 Q1006 410 1011 409 Q1023 414 1031 411 L1049 401.5 L1061 400.5 L1075 394.5 L1088 396.5 L1106 388 L1138 351 L1156 342 L1159 341.5 L1189 349.5 Q1204 347 1219 338 L1230 336 L1238 333 L1261 338 L1270 336.5 L1287 330 L1304 316 L1319 305.5 L1329 302.5 L1350 290.5 L1361 286 L1376 290 L1385 285 L1393 279.5 L1405 271.5 Q1420 262 1428 264 Q1439 264 1446 270.5 L1460 282.5 L1473 288.5 L1486 303.5 L1498 307 L1505 307 L1510 305 L1518 306 L1531 312.5 L1557 332.5 L1580 348 L1597 359 L1616 365 L1643 351 L1653 355 L1659 354 L1672 361.5 L1693 394.5 L1709 403.5 L1721 414.5 L1731 419 L1742 416 L1752 422 L1758 429 L1768 431.5 L1776 437 L1794 433 L1805 436 L1812 444 L1816 441.5 L1820 443.5 L1836 456.5 L1851 462 L1880 477.5 L1932 500.5"/>
+        <path d="M1427.5 263 L1427.5 216 M1425.5 240 L1429.5 240 M1424 261 L1431.5 261"/>
+        <path d="M1043 465 L1080 452.5 L1110 442 Q1133 431 1150 427.5 L1180 417.5 L1210 405.5 Q1229 398 1240 386.5 L1250 378 L1260 367 L1270 364.5 Q1287 359 1295 359 Q1304 360 1310 364 L1340 375 L1370 384.5 L1400 392 L1420 398 L1440 408 L1460 418 L1480 425 L1500 433.5 L1530 447.5 L1560 462.5 L1580 471.5 L1600 478 L1620 486.5 L1641 495.5"/>
+        <path d="M867 477 Q889 463 903 449 L920 431 L934 421.5 L949 426 L956 438 L973 446"/>
+        <path d="M1313 377 Q1331 389 1344 400 Q1365 415 1390 427.5 L1410 438 L1438 453"/>
+      </g>
+      <svg x="184" y="201" width="431" height="316" viewBox="248 343 759 558" preserveAspectRatio="none">
+        <path fill="url(#steel)" d="M248 343H845L744 442H248Z"/><path fill="url(#steel)" d="M452 442H577V901H452Z"/>
+        <path fill="url(#navy)" d="M598 557H868V666H598Z"/><path fill="url(#navy)" d="M868 343H1007V901H868Z"/>
+      </svg>
+    </svg>
+    <div class="gatebody">
+      <h1>O.E. SeeDee</h1>
+      <p class="lede">A transfer pricing case. Explore it, then vote on four scenarios.</p>
+      <form id="signin" novalidate>
+        <label for="name">Pick a name. Any name.</label>
+        <div class="signrow">
+          <input id="name" name="name" type="text" autocomplete="off" maxlength="80" required>
+          <button class="ghost" id="alias" type="button">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/></svg>
+            Surprise me
+          </button>
+          <button class="primary" type="submit">Start</button>
+        </div>
+        <p class="err" id="name-err" hidden>Pick a name to start.</p>
+        <p class="fine">No real name needed. Use your imagination.</p>
+      </form>
+      <button class="link" id="gate-cancel" type="button" hidden></button>
+      <p class="fine" id="gate-note"></p>
+    </div>
+  </section>
+
+  <section class="gate" id="admin" hidden>
+    <div class="gatebody">
+      <h1>Summit control</h1>
+      <form id="admin-form" novalidate>
+        <label for="admin-code">Admin passcode</label>
+        <div class="signrow">
+          <input id="admin-code" name="admin-code" type="password" autocomplete="off" required>
+          <button class="primary" type="submit">Unlock</button>
+        </div>
+        <p class="err" id="admin-err" role="alert" hidden></p>
+      </form>
+      <div id="admin-panel" hidden></div>
+      <button class="link" id="admin-exit" type="button">Back to the case</button>
+    </div>
+  </section>
+
+  <div id="journey" hidden>
+    <div class="steprow">
+      <nav class="ridge" id="ridge" aria-label="Steps"></nav>
+      <div class="caption" aria-live="polite">
+        <div class="k" id="capk"></div>
+        <h1 id="cap"></h1>
+      </div>
+    </div>
+    <main class="cols" id="cols">
+      <div class="stagewrap" id="stage"></div>
+      <aside class="side" id="side"></aside>
+    </main>
+    <nav class="pager" aria-label="Previous and next step">
+      <button class="ghost" id="prev" type="button"></button>
+      <span class="count" id="count"></span>
+      <button class="primary" id="next" type="button"></button>
+    </nav>
+  </div>
+
+  <footer>
+    <span>© 2026 Thomas Herr</span>
+    <span>O.E. SeeDee Ltd. is fictitious. <button class="link quiet" id="admin-link" type="button">Admin</button></span>
+  </footer>
+</div>
+<!--page:end-->
+</body>
+</html>
