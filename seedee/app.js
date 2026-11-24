@@ -697,7 +697,7 @@
       results.replaceChildren(
         h('div', { class: 'cmp' }, h('span', null, 'Case D'), crowdBar(all.D, before).bar),
         h('div', { class: 'cmp' }, h('span', null, 'With its history'), crowdBar(all.D2, mine.a).bar), countsRow(all.D2),
-        before ? h('p', { class: 'shift' }, 'You: ', h('span', { class: 'pi ' + before }, icon(before)), icon('right'), h('span', { class: 'pi ' + mine.a }, icon(mine.a))) : null);
+        ...(before ? [h('p', { class: 'shift' }, 'You: ', h('span', { class: 'pi ' + before }, icon(before)), icon('right'), h('span', { class: 'pi ' + mine.a }, icon(mine.a)))] : []));
     }).catch(() => {
       if (pollUI !== pu || pu.token !== token) return;
       results.replaceChildren(h('p', { class: 'status' }, 'Totals are not available right now.'));
@@ -805,9 +805,9 @@
     }));
     const crowd = h('div', { class: 'crowd' }), tips = h('div', { class: 'tips' });
     const crowdN = h('small'), tipN = h('small');
+    if (open && !votes.D2) stage.append(h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'A hidden path has opened.'),
+      h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, 'Take it', icon('right'))));
     stage.append(
-      open && !votes.D2 ? h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'A hidden path has opened.'),
-        h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, 'Take it', icon('right'))) : null,
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Your route'), route),
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Everyone', crowdN), crowd),
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'First case that is not a Yes', tipN), tips),
