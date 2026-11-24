@@ -3,9 +3,12 @@
 -- Safe to run again after an update: it keeps existing votes.
 --
 -- The public key can only call the functions below: cast a vote, read totals, read answer
--- patterns (once the summit is open), ask whether the summit is open, and, with the admin
--- passcode, open or close it. Names and comments are readable only from the Supabase dashboard
--- (Table editor > seedee_votes), which requires your own login.
+-- patterns (once the summit is open), ask which switches are on, and, with the admin passcode,
+-- flip them and read progress and individual answers. Without the passcode, names and comments
+-- are readable only from the Supabase dashboard (Table editor > seedee_votes).
+--
+-- Two switches, both off after a first install: "cases" lets people move from the ground rules
+-- into Case A, "summit" shows everyone's results. Flip them in the page's admin panel.
 --
 -- After running this script, set your admin passcode once. Do NOT put it in this file; run this
 -- line on its own in the SQL editor, with a passcode of your choice:
@@ -30,13 +33,15 @@ alter table public.seedee_votes add constraint seedee_votes_case_key_check
 alter table public.seedee_votes enable row level security;
 revoke all on table public.seedee_votes from anon, authenticated;
 
--- One row of settings: whether the summit is open, and the admin passcode. Nobody can read this
--- table with the public key.
+-- One row of settings: the two switches and the admin passcode. Nobody can read this table with
+-- the public key.
 create table if not exists public.seedee_settings (
   id          int     primary key default 1 check (id = 1),
   summit_open boolean not null default false,
+  cases_open  boolean not null default false,
   admin_code  text
 );
+alter table public.seedee_settings add column if not exists cases_open boolean not null default false;
 insert into public.seedee_settings (id) values (1) on conflict (id) do nothing;
 alter table public.seedee_settings enable row level security;
 revoke all on table public.seedee_settings from anon, authenticated;
@@ -75,16 +80,20 @@ language sql stable security definer set search_path = public as $$
   group by s.path;
 $$;
 
--- Is the summit open?
-create or replace function public.seedee_state()
-returns boolean
+-- Which switches are on? { "cases": bool, "summit": bool }
+drop function if exists public.seedee_state();
+create function public.seedee_state()
+returns json
 language sql stable security definer set search_path = public as $$
-  select coalesce((select summit_open from seedee_settings where id = 1), false);
+  select json_build_object('cases', coalesce(s.cases_open, false), 'summit', coalesce(s.summit_open, false))
+  from (select 1) one left join seedee_settings s on s.id = 1;
 $$;
 
--- Administrator: with the right passcode, optionally open or close the summit, and get progress.
+-- Administrator: with the right passcode, optionally flip a switch, and get progress.
+-- p_list ('yes', 'no' or 'unc') also returns everyone who gave that answer, with name and comment.
 -- A wrong passcode waits a second and is refused.
-create or replace function public.seedee_admin(p_code text, p_open boolean default null)
+drop function if exists public.seedee_admin(text, boolean);
+create or replace function public.seedee_admin(p_code text, p_open boolean default null, p_cases boolean default null, p_list text default null)
 returns json
 language plpgsql security definer set search_path = public as $$
 declare ok boolean;
@@ -97,14 +106,22 @@ begin
   if p_open is not null then
     update seedee_settings set summit_open = p_open where id = 1;
   end if;
+  if p_cases is not null then
+    update seedee_settings set cases_open = p_cases where id = 1;
+  end if;
   return json_build_object(
     'open', (select summit_open from seedee_settings where id = 1),
+    'cases', (select cases_open from seedee_settings where id = 1),
     'people', (select count(distinct voter) from seedee_votes),
     'answered', (select coalesce(json_object_agg(t.case_key, t.n), '{}'::json)
                  from (select case_key, count(*) as n from seedee_votes group by case_key) t),
     'done4', (select count(*) from (select voter from seedee_votes where case_key in ('A', 'B', 'C', 'D')
                                     group by voter having count(*) = 4) x),
-    'done5', (select count(*) from seedee_votes where case_key = 'D2'));
+    'done5', (select count(*) from seedee_votes where case_key = 'D2'),
+    'votes', case when p_list is null then null else
+      (select coalesce(json_agg(json_build_object('case', v.case_key, 'name', v.name, 'comment', v.comment)
+                                order by v.case_key, lower(v.name)), '[]'::json)
+       from seedee_votes v where v.answer = p_list) end);
 end;
 $$;
 
@@ -115,9 +132,9 @@ grant execute on function public.seedee_cast(uuid, text, text, text, text) to an
 grant execute on function public.seedee_totals() to anon, authenticated;
 grant execute on function public.seedee_paths() to anon, authenticated;
 revoke all on function public.seedee_state() from public;
-revoke all on function public.seedee_admin(text, boolean) from public;
+revoke all on function public.seedee_admin(text, boolean, boolean, text) from public;
 grant execute on function public.seedee_state() to anon, authenticated;
-grant execute on function public.seedee_admin(text, boolean) to anon, authenticated;
+grant execute on function public.seedee_admin(text, boolean, boolean, text) to anon, authenticated;
 
 -- Your view of the results (run in the SQL editor, or use the Table editor and its CSV export):
 --   select name, case_key, answer, comment, updated_at from seedee_votes order by name, case_key;

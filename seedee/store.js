@@ -10,6 +10,7 @@
   const K_ME = 'seedee.me';         // "<name, lower case>"
   const K_VOTES = 'seedee.votes';   // { "<voter id>": { A: { a, c }, ... } }
   const K_OPEN = 'seedee.open';     // preview mode only: is the summit open?
+  const K_CASES = 'seedee.cases';   // preview mode only: may people start the cases? (default yes)
   const mem = {};
 
   function read(key, fallback) {
@@ -91,24 +92,50 @@
     return Object.keys(count).map(path => ({ path, n: count[path] }));
   }
 
-  // Is the summit (the page with everyone's results) open? The administrator decides.
-  // A database set up before this switch existed has no such function and counts as open.
+  // The two switches the administrator controls: may people start the cases, and is the summit
+  // (the page with everyone's results) open? Returns { cases, open }.
+  // A database set up before a switch existed counts as open for that switch.
   async function state() {
-    if (!live) return { open: !!read(K_OPEN, false) };
-    try { return { open: (await rpc('seedee_state')) === true }; }
-    catch (e) { if (e.status === 404) return { open: true }; throw e; }
+    if (!live) return { cases: !!read(K_CASES, true), open: !!read(K_OPEN, false) };
+    try {
+      const r = await rpc('seedee_state');
+      if (typeof r === 'boolean') return { cases: true, open: r };
+      return { cases: !!(r && r.cases), open: !!(r && r.summit) };
+    } catch (e) { if (e.status === 404) return { cases: true, open: true }; throw e; }
   }
-  // Administrator: checks the passcode, optionally opens or closes the summit, and returns progress:
-  // { open, people, answered: { A, B, C, D, D2 }, done4, done5 }. Rejects with status 403 on a wrong passcode.
-  // In preview mode any passcode works and the switch lives in this browser only.
-  async function admin(code, open) {
-    if (live) return rpc('seedee_admin', open === undefined ? { p_code: code } : { p_code: code, p_open: !!open });
+  // Administrator: checks the passcode, optionally flips a switch, and returns progress:
+  // { cases, open, people, answered: { A, B, C, D, D2 }, done4, done5, votes: [{ case, name, comment }] }.
+  // change: { cases: true|false, open: true|false, list: 'yes'|'no'|'unc' }; list picks whose answers to return.
+  // Rejects with status 401 or 403 on a wrong passcode. In preview mode any passcode works and
+  // the switches live in this browser only.
+  async function admin(code, change) {
+    change = change || {};
+    if (live) {
+      const body = { p_code: code };
+      if (change.open !== undefined) body.p_open = !!change.open;
+      if (change.cases !== undefined) body.p_cases = !!change.cases;
+      if (change.list) body.p_list = change.list;
+      try {
+        const r = await rpc('seedee_admin', body);
+        return Object.assign({ cases: true }, r);
+      } catch (e) {
+        // An older database only knows the summit switch: keep that working and say so.
+        if (e.status !== 404) throw e;
+        const old = { p_code: code }; if (change.open !== undefined) old.p_open = !!change.open;
+        return Object.assign({ cases: true, legacy: true }, await rpc('seedee_admin', old));
+      }
+    }
     if (!code) { const err = new Error('Wrong passcode'); err.status = 403; throw err; }
-    if (open !== undefined) write(K_OPEN, !!open);
-    const all = Object.values(read(K_VOTES, {})), answered = {};
+    if (change.open !== undefined) write(K_OPEN, !!change.open);
+    if (change.cases !== undefined) write(K_CASES, !!change.cases);
+    const votes = read(K_VOTES, {}), names = {}, all = Object.values(votes), answered = {}, list = [];
+    Object.values(read(K_PEOPLE, {})).forEach(p => { names[p.id] = p.name; });
     POLLS.forEach(k => { answered[k] = all.filter(v => v[k]).length; });
-    return { open: !!read(K_OPEN, false), people: all.filter(v => POLLS.some(k => v[k])).length, answered,
-      done4: all.filter(v => ['A', 'B', 'C', 'D'].every(k => v[k])).length, done5: answered.D2 };
+    if (change.list) POLLS.forEach(k => Object.keys(votes).forEach(id => {
+      if (votes[id][k] && votes[id][k].a === change.list) list.push({ case: k, name: names[id] || 'Someone', comment: votes[id][k].c || null });
+    }));
+    return { cases: !!read(K_CASES, true), open: !!read(K_OPEN, false), people: all.filter(v => POLLS.some(k => v[k])).length, answered,
+      done4: all.filter(v => ['A', 'B', 'C', 'D'].every(k => v[k])).length, done5: answered.D2, votes: change.list ? list : null };
   }
 
   window.SeeDeeStore = { live, me, signIn, signOut, myVotes, cast, totals, paths, state, admin };

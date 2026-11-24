@@ -103,9 +103,25 @@
   // The two secret steps exist only once all four cases have been answered.
   const unlocked = () => { const v = store.myVotes(); return CASES.every(c => v[c.k]); };
   const shown = i => !STEPS[i].secret || unlocked() || adminView;
+  // casesOpen: has the administrator started the cases? null until the first answer from the store.
+  // While it is not true, everyone waits on the ground rules; the page checks every few seconds.
+  let casesOpen = null, gateTimer = null;
+  function watchGate() {
+    clearInterval(gateTimer); gateTimer = null;
+    const apply = st => {
+      const before = casesOpen;
+      casesOpen = !!st.cases;
+      if (casesOpen) { clearInterval(gateTimer); gateTimer = null; }
+      if (before !== casesOpen && state.step >= 0) { renderRidge(); renderPager(); rulesNote(); }
+    };
+    const check = () => store.state().then(apply).catch(() => {});
+    gateTimer = setInterval(check, 5000);
+    return store.state().then(apply).catch(() => {});
+  }
   // The furthest step that may be opened: nobody gets past a case they have not answered.
   function limit() {
     if (adminView) return LAST; // the administrator may look at any step
+    if (casesOpen !== true) return FIRST_CASE - 1; // held on the ground rules until the cases are started
     const v = store.myVotes();
     for (let c = 0; c < CASES.length; c++) if (!v[CASES[c].k]) return FIRST_CASE + c;
     return LAST;
@@ -150,7 +166,7 @@
     prev.replaceChildren(icon('left'), 'Back');
     // On the reveal page the way forward stays out of sight until the animation has shown it.
     // On a case and on the hidden path the only way on is the button that appears in the poll after voting.
-    next.hidden = n === i || (i === ALMOST && !revealed) || i === SECRET || STEPS[i].render === cases;
+    next.hidden = n === i || n > limit() || (i === ALMOST && !revealed) || i === SECRET || STEPS[i].render === cases;
     if (n !== i) next.replaceChildren(STEPS[n].k, icon('right'));
     $('count').textContent = (visible.indexOf(i) + 1) + ' / ' + visible.length;
   }
@@ -540,7 +556,16 @@
         rule('unc', 'Unclear means unsure', 'Reasonably certain? Pick Yes or No. Pick Unclear only if key facts are missing, and say why.')),
       h('div', { class: 'rules' },
         rule('lock', 'Same in every case', 'The legal structure. The contract. Company A owns the IP.', 'fixed'),
-        rule('swap', 'Different in each case', 'Where people work, who manages them, and how much substance each company has.', 'fixed')));
+        rule('swap', 'Different in each case', 'Where people work, who manages them, and how much substance each company has.', 'fixed')),
+      h('div', { id: 'cases-wait' }));
+    rulesNote();
+  }
+  // On the ground rules: tells people they are waiting for the administrator to start the cases.
+  function rulesNote() {
+    const slot = document.getElementById('cases-wait');
+    if (!slot) return;
+    slot.replaceChildren(...(casesOpen === true || adminView ? [] : [h('div', { class: 'panel waitnote', role: 'status' }, icon('refresh'),
+      h('span', null, 'The cases have not started yet. The Case A button appears here as soon as they do.'))]));
   }
 
   /* ---------- steps: cases A-D ---------- */
@@ -1076,6 +1101,7 @@
     const pick = list => list[Math.floor(Math.random() * list.length)];
     return pick(D.ALIAS.first) + ' ' + pick(D.ALIAS.second) + ' of ' + pick(D.ALIAS.place);
   }
+  let entering = 0;
   function enter(step) {
     const me = store.me();
     $('gate').hidden = true; $('journey').hidden = false; $('who').hidden = false;
@@ -1083,29 +1109,36 @@
     state.step = -1;
     if (cleanup) { cleanup(); cleanup = null; }
     caseUI = null; pollUI = null; walked = -1; revealed = false;
-    go(step);
+    // Find out whether the cases have started before deciding which screen may open.
+    const token = ++entering;
+    const ready = () => { if (token === entering && !$('journey').hidden) go(step); };
+    watchGate().then(ready, ready);
   }
 
   /* ---------- administrator: open or close the summit ---------- */
   // adminView: set once the passcode has been accepted; lifts the answer-first rule for this tab.
   // adminReturn: the step the administrator was on before opening the panel.
-  let adminCode = '', adminTimer = null, adminView = false, adminReturn = null;
+  // adminList: which answer the panel lists person by person.
+  let adminCode = '', adminTimer = null, adminView = false, adminReturn = null, adminList = 'no';
   function showAdmin() {
+    clearInterval(gateTimer); gateTimer = null;
     if (!$('journey').hidden && state.step >= 0) adminReturn = state.step;
     $('gate').hidden = true; $('journey').hidden = true; $('who').hidden = true; $('admin').hidden = false;
     try { adminCode = sessionStorage.getItem('seedee.admin') || ''; } catch (e) { adminCode = ''; }
     $('admin-form').hidden = !!adminCode; $('admin-panel').hidden = !adminCode; $('admin-err').hidden = true;
     if (adminCode) adminLoad(); else $('admin-code').focus();
   }
-  function adminLoad(open) {
+  // change: { open } or { cases } flips a switch; the list of individual answers always comes along.
+  function adminLoad(change) {
     clearInterval(adminTimer);
-    return store.admin(adminCode, open).then(p => {
+    const ask = extra => store.admin(adminCode, Object.assign({ list: adminList }, extra));
+    return ask(change).then(p => {
       if ($('admin').hidden) return;
       try { sessionStorage.setItem('seedee.admin', adminCode); } catch (e) { /* keep it for this page only */ }
       adminView = true;
       $('admin-form').hidden = true; $('admin-err').hidden = true; $('admin-panel').hidden = false;
       adminRender(p);
-      adminTimer = setInterval(() => { store.admin(adminCode).then(q => { if (!$('admin').hidden) adminRender(q); }).catch(() => {}); }, 5000);
+      adminTimer = setInterval(() => { ask().then(q => { if (!$('admin').hidden) adminRender(q); }).catch(() => {}); }, 5000);
     }).catch(e => {
       const wrong = [400, 401, 403].indexOf(e.status) >= 0;
       if (wrong) { adminCode = ''; try { sessionStorage.removeItem('seedee.admin'); } catch (x) { /* nothing stored */ } $('admin-form').hidden = false; $('admin-panel').hidden = true; }
@@ -1117,21 +1150,40 @@
   }
   function adminRender(p) {
     const answered = p.answered || {}, max = Math.max(1, p.people || 0);
+    casesOpen = p.cases !== false;
     const row = (label, n) => {
       const fillEl = h('i'); fillEl.style.width = ((n || 0) / max * 100) + '%';
       return h('div', { class: 'arow' }, h('span', null, label), h('span', { class: 'abar' }, fillEl), h('b', null, String(n || 0)));
     };
+    const sw = (on, id, name, change, extra) => h('div', { class: 'astate ' + (on ? 'open' : 'closed') },
+      h('span', { class: 'apill' }, name + (on ? ' open' : ' closed')),
+      h('span', { class: 'abtns' },
+        h('button', { class: on ? 'ghost' : 'primary', type: 'button', id, on: { click: () => adminLoad(change) } }, (on ? 'Close the ' : 'Open the ') + name.toLowerCase()), extra));
+    // individual answers, grouped by case
+    const polls = CASES.map(cs => ({ key: cs.k, name: 'Case ' + cs.k })).concat([{ key: 'D2', name: 'Case D with its history' }]);
+    const word = ANSWERS.find(a => a[0] === adminList)[1];
+    const lists = h('div', { class: 'avotes' });
+    if (p.votes) polls.forEach(pl => {
+      const mine = p.votes.filter(v => v.case === pl.key);
+      lists.append(h('div', { class: 'acase' }, h('div', { class: 'ahead' }, h('b', null, pl.name), h('span', null, mine.length + ' × ' + word)),
+        mine.length ? h('ul', null, ...mine.map(v => h('li', null, h('b', null, v.name || 'Someone'), v.comment ? h('span', null, v.comment) : null))) : h('p', { class: 'fine' }, 'Nobody.')));
+    });
     $('admin-panel').replaceChildren(
-      h('div', { class: 'astate ' + (p.open ? 'open' : 'closed') }, h('span', { class: 'apill' }, p.open ? 'Summit open' : 'Summit closed'),
-        h('span', { class: 'abtns' },
-          h('button', { class: p.open ? 'ghost' : 'primary', type: 'button', id: 'admin-toggle', on: { click: () => adminLoad(!p.open) } }, p.open ? 'Close the summit' : 'Open the summit'),
-          h('button', { class: p.open ? 'primary' : 'ghost', type: 'button', id: 'admin-summit', on: { click: () => exitAdmin(LAST) } }, 'View the summit', icon('right')))),
+      sw(p.cases !== false, 'admin-cases', 'Cases', { cases: p.cases === false }),
+      h('p', { class: 'fine' }, p.cases !== false ? 'People can go from the ground rules into Case A.' : 'Everyone waits on the ground rules (page 6) until you open the cases.'),
+      sw(p.open, 'admin-toggle', 'Summit', { open: !p.open },
+        h('button', { class: p.open ? 'primary' : 'ghost', type: 'button', id: 'admin-summit', on: { click: () => exitAdmin(LAST) } }, 'View the summit', icon('right'))),
       h('p', { class: 'fine' }, p.open ? 'Everyone who has finished sees the results.' : 'People who finish wait in the clouds until you open it.'),
       h('div', { class: 'aprog' },
         row('Started', p.people), ...CASES.map(cs => row('Case ' + cs.k, answered[cs.k])),
         row('All four cases', p.done4), row('Hidden path done', p.done5)),
       h('p', { class: 'fine' }, store.live ? 'Updates every few seconds. "Started" counts people who have answered at least one case.'
-        : 'Preview mode: this switch and these numbers cover this browser only, and any passcode unlocks it.'));
+        : 'Preview mode: these switches and numbers cover this browser only, and any passcode unlocks it.'),
+      ...(p.legacy ? [h('p', { class: 'err' }, 'Run the updated setup.sql in Supabase to get the cases switch and the individual answers.')] : [
+        h('div', { class: 'ahead top' }, h('h2', null, 'Individual answers'),
+          h('span', { class: 'achips', role: 'group', 'aria-label': 'Which answer to list' }, ...ANSWERS.map(([k, label]) =>
+            h('button', { class: 'ghost', type: 'button', id: 'list-' + k, 'aria-pressed': String(k === adminList), on: { click: () => { adminList = k; adminLoad(); } } }, icon(k), label)))),
+        lists]));
   }
   // Leaves the panel: to a given step (the summit button), or back to where the administrator was.
   function exitAdmin(step) {
