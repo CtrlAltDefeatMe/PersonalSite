@@ -854,32 +854,70 @@
   }
 
   /* ---------- step: summit ---------- */
-  // A hiker celebrating on the summit. One fixed look in both themes, drawn on a sky-blue tile.
+  // A hiker celebrating on the summit: a jointed figure (shoulders, elbows, hips, knees, ankles) whose
+  // parts all run on one 3.6 s loop in seedee.css: crouch, jump, land, then wave the poles.
+  // One fixed look in both themes, drawn on a sky-blue tile.
   function cheer() {
-    const star = (x, y, sc, fill, d) => '<path class="hk-spark" style="--d:' + d + 's" transform="translate(' + x + ' ' + y + ') scale(' + sc + ')" fill="' + fill + '" d="M0 -6L1.6 -1.6 6 0 1.6 1.6 0 6 -1.6 1.6 -6 0 -1.6 -1.6Z"/>';
+    const SW = '#2e4268', PANT = '#3b4a63', BOOT = '#6b4a2f', SKIN = '#e9b98f', RED = '#9b3a2c', DRED = '#7a2e22', POLE = '#586475', SNOW = '#fbfdff';
+    // s: 1 for the left limb, -1 for the right; the keyframes mirror themselves through --s.
+    const arm = (s, sx, ex, hx) =>
+      `<g class="hk-j hk-upper" style="--s:${s};transform-origin:${sx}px 92px">` +
+        `<line x1="${sx}" y1="92" x2="${ex}" y2="110" stroke="${SW}" stroke-width="9.5" stroke-linecap="round"/>` +
+        `<g class="hk-j hk-fore" style="--s:${s};transform-origin:${ex}px 110px">` +
+          `<line x1="${hx}" y1="124" x2="${hx - s * 2}" y2="170" stroke="${POLE}" stroke-width="2.4" stroke-linecap="round"/>` +
+          `<circle cx="${hx - s * 2}" cy="165" r="3" fill="none" stroke="${POLE}" stroke-width="1.4"/>` +
+          `<line x1="${ex}" y1="110" x2="${hx}" y2="127" stroke="${SW}" stroke-width="9" stroke-linecap="round"/>` +
+          `<circle cx="${hx}" cy="129.5" r="5.2" fill="${SKIN}"/>` +
+        `</g></g>`;
+    const leg = (s, hx, kx, ax) =>
+      `<g class="hk-j hk-thigh" style="--s:${s};transform-origin:${hx}px 128px">` +
+        `<line x1="${hx}" y1="128" x2="${kx}" y2="148" stroke="${PANT}" stroke-width="10.5" stroke-linecap="round"/>` +
+        `<g class="hk-j hk-shin" style="--s:${s};transform-origin:${kx}px 148px">` +
+          `<line x1="${kx}" y1="148" x2="${ax}" y2="165" stroke="${PANT}" stroke-width="9.5" stroke-linecap="round"/>` +
+          `<g class="hk-j hk-foot" style="--s:${s};transform-origin:${ax}px 167px">` +
+            (s > 0 ? `<path d="M${ax - 11} 176v-4a4 4 0 0 1 4-4h3v-4h11v12z" fill="${BOOT}"/>` : `<path d="M${ax + 11} 176v-4a4 4 0 0 0-4-4h-3v-4h-11v12z" fill="${BOOT}"/>`) +
+          `</g></g></g>`;
+    let confetti = '';
+    for (let i = 0; i < 18; i++) {
+      const ang = Math.PI * (0.08 + 0.84 * ((i * 7) % 18) / 17), dist = 46 + (i * 37) % 30;
+      const style = `--dx:${Math.round(Math.cos(ang) * dist * 1.25)}px;--dy:${-Math.round(Math.sin(ang) * dist * 0.8)}px;--r:${(i % 2 ? 1 : -1) * (120 + (i * 53) % 240)}deg`;
+      const fill = [RED, SW, '#587caa', '#ffffff', '#253650'][i % 5];
+      confetti += i % 3 === 0 ? `<circle class="hk-j hk-conf" style="${style}" r="2.6" fill="${fill}"/>` : `<rect class="hk-j hk-conf" style="${style}" x="-2.6" y="-1.6" width="5.2" height="3.2" rx=".8" fill="${fill}"/>`;
+    }
+    const cloud = 'M0 14a9 9 0 0 1 9-9 13 13 0 0 1 24-3 10 10 0 0 1 15 6 8 8 0 0 1 2 16H6a8 8 0 0 1-6-10z';
+    const flag = reduced ? '' : '<animate attributeName="d" dur="1.1s" repeatCount="indefinite" values="M183 128Q199 123 216 134 200 141 183 150Z;M183 128Q200 135 216 130 199 147 183 150Z;M183 128Q199 123 216 134 200 141 183 150Z"/>';
     const box = h('div', { class: 'card cheer' });
-    box.innerHTML = '<svg class="hiker" viewBox="0 0 240 250" role="img" aria-label="A hiker in an IRS sweater celebrates on the summit, poles in the air.">' +
-      '<circle cx="42" cy="44" r="17" fill="#ffffff" opacity=".75"/>' +
-      '<path d="M0 250L46 196 78 208 120 176 158 204 190 192 240 250Z" fill="#fbfdff" stroke="#4c6e94" stroke-width="1.5" stroke-linejoin="round"/>' +
-      '<line x1="183" y1="196" x2="183" y2="126" stroke="#253650" stroke-width="2.5" stroke-linecap="round"/>' +
-      '<path class="hk-flag" d="M183 128L216 137 183 149Z" fill="#9b3a2c"/>' +
-      star(60, 98, 1, '#9b3a2c', 0) + star(196, 84, 1.2, '#2e4268', 0.4) + star(150, 34, 0.9, '#ffffff', 0.8) + star(72, 150, 0.8, '#2e4268', 1.1) + star(92, 30, 1.1, '#9b3a2c', 0.6) +
-      '<ellipse class="hk-shadow" cx="120" cy="179" rx="26" ry="4" fill="#253650" opacity=".2"/>' +
-      '<g class="hk-body">' +
-        '<path d="M113 128L106 167M127 128L134 167" stroke="#3b4a63" stroke-width="10" stroke-linecap="round" fill="none"/>' +
-        '<path d="M99 166h12a4 4 0 0 1 4 4v6H95v-6a4 4 0 0 1 4-4zM129 166h12a4 4 0 0 1 4 4v6h-20v-6a4 4 0 0 1 4-4z" fill="#6b4a2f"/>' +
-        '<rect x="96" y="80" width="48" height="46" rx="10" fill="#9b3a2c"/>' +
-        '<g class="hk-arm hk-arm-l"><line x1="85" y1="60" x2="77" y2="16" stroke="#586475" stroke-width="2.5" stroke-linecap="round"/><line x1="107" y1="92" x2="86" y2="59" stroke="#2e4268" stroke-width="10" stroke-linecap="round"/><circle cx="85" cy="56" r="5.5" fill="#e9b98f"/></g>' +
-        '<g class="hk-arm hk-arm-r"><line x1="155" y1="60" x2="163" y2="16" stroke="#586475" stroke-width="2.5" stroke-linecap="round"/><line x1="133" y1="92" x2="154" y2="59" stroke="#2e4268" stroke-width="10" stroke-linecap="round"/><circle cx="155" cy="56" r="5.5" fill="#e9b98f"/></g>' +
-        '<rect x="103" y="84" width="34" height="46" rx="9" fill="#2e4268"/>' +
-        '<rect x="103" y="123" width="34" height="7" rx="3.5" fill="#516f97"/>' +
-        '<path d="M111 85q9 8 18 0" stroke="#516f97" stroke-width="3" stroke-linecap="round" fill="none"/>' +
-        '<text x="120" y="114" text-anchor="middle" font-size="13.5" font-weight="800" letter-spacing=".7" fill="#ffffff" font-family="Arial, Helvetica, sans-serif">IRS</text>' +
-        '<circle cx="120" cy="68" r="14" fill="#e9b98f"/>' +
-        '<path d="M106.5 71Q120 94 133.5 71 120 78 106.5 71Z" fill="#6b4a2f"/>' +
-        '<path d="M114 72.5q6 7 12 0Z" fill="#7a2e22"/>' +
-        '<circle cx="115" cy="66.5" r="1.7" fill="#253650"/><circle cx="125" cy="66.5" r="1.7" fill="#253650"/>' +
-        '<path d="M106 63a14 14 0 0 1 28 0Z" fill="#9b3a2c"/><rect x="104.5" y="59.5" width="31" height="5.5" rx="2.75" fill="#7a2e22"/><circle cx="120" cy="48.5" r="4.2" fill="#fbfdff"/>' +
+    box.innerHTML = '<svg class="hiker" viewBox="0 0 240 316" role="img" aria-label="A hiker in an IRS sweater jumps for joy on the summit, trekking poles in the air.">' +
+      '<g transform="translate(0 66)">' +
+        '<circle class="hk-rays" cx="40" cy="4" r="25" fill="none" stroke="#ffffff" stroke-width="5" stroke-dasharray="3 10.09" opacity=".75"/><circle cx="40" cy="4" r="15" fill="#ffffff" opacity=".85"/>' +
+        `<g class="hk-cloud c1"><path transform="translate(0 30) scale(.8)" d="${cloud}" fill="#ffffff" opacity=".8"/></g>` +
+        `<g class="hk-cloud c2"><path transform="translate(0 -22) scale(.55)" d="${cloud}" fill="#ffffff" opacity=".65"/></g>` +
+        '<g class="hk-bird"><path class="hk-flap" d="M0 0q4-5 8 0 4-5 8 0" fill="none" stroke="#253650" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></g>' +
+        '<path d="M150 250L208 168 240 204V250Z" fill="#e3eefa"/><path d="M0 214L28 184 74 250H0Z" fill="#e3eefa"/>' +
+        `<path d="M0 250L46 196 78 208 120 176 158 204 190 192 240 250Z" fill="${SNOW}" stroke="#4c6e94" stroke-width="1.5" stroke-linejoin="round"/>` +
+        '<line x1="183" y1="196" x2="183" y2="126" stroke="#253650" stroke-width="2.5" stroke-linecap="round"/>' +
+        `<path d="M183 128Q199 123 216 134 200 141 183 150Z" fill="${RED}">${flag}</path>` +
+        '<ellipse class="hk-j hk-shadow" cx="120" cy="179" rx="26" ry="4" fill="#253650"/>' +
+        `<g transform="translate(120 20)">${confetti}</g>` +
+        '<g class="hk-j hk-root"><g class="hk-j hk-squash">' +
+          leg(1, 113, 112, 111) + leg(-1, 127, 128, 129) +
+          `<rect class="hk-j hk-pack" x="96" y="80" width="48" height="46" rx="10" fill="${RED}"/>` +
+          `<rect x="103" y="84" width="34" height="46" rx="9" fill="${SW}"/><rect x="103" y="123" width="34" height="7" rx="3.5" fill="#516f97"/>` +
+          `<path class="hk-j hk-scarf" d="M110 83l-8 15 6 2 7-14z" fill="${SNOW}"/>` +
+          arm(1, 107, 105, 104) + arm(-1, 133, 135, 136) +
+          '<text x="120" y="114" text-anchor="middle" font-size="13.5" font-weight="800" letter-spacing=".7" fill="#ffffff" font-family="Arial, Helvetica, sans-serif">IRS</text>' +
+          '<g class="hk-j hk-head">' +
+            `<rect x="108" y="78.5" width="24" height="7.5" rx="3.75" fill="${SNOW}"/>` +
+            `<circle cx="120" cy="68" r="14" fill="${SKIN}"/>` +
+            `<path d="M106.5 71Q120 94 133.5 71 120 78 106.5 71Z" fill="${BOOT}"/>` +
+            `<path class="hk-j hk-smile" d="M114.5 73q5.5 4.5 11 0" fill="none" stroke="${DRED}" stroke-width="1.8" stroke-linecap="round"/>` +
+            `<g class="hk-j hk-shout"><path d="M113 72q7 12 14 0Z" fill="${DRED}"/><path d="M116.5 77.5q3.5 2.2 7 0-3.5 3-7 0Z" fill="#e58a7a"/></g>` +
+            '<g class="hk-j hk-eyes"><circle cx="115" cy="66.5" r="1.7" fill="#253650"/><circle cx="125" cy="66.5" r="1.7" fill="#253650"/></g>' +
+            '<path class="hk-j hk-happy" d="M112.5 67q2.5-3 5 0M122.5 67q2.5-3 5 0" fill="none" stroke="#253650" stroke-width="1.6" stroke-linecap="round"/>' +
+            `<path d="M106 63a14 14 0 0 1 28 0Z" fill="${RED}"/><rect x="104.5" y="59.5" width="31" height="5.5" rx="2.75" fill="${DRED}"/>` +
+            `<circle class="hk-j hk-pom" cx="120" cy="48.5" r="4.2" fill="${SNOW}"/>` +
+          '</g>' +
+        '</g></g>' +
       '</g></svg><p>You made it.</p>';
     return box;
   }
