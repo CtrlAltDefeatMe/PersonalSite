@@ -90,13 +90,16 @@
     { id: 'people', k: 'The people', t: 'One CEO, five chiefs, eleven directors.', render: people },
     { id: 'rules', k: 'Ground rules', t: 'Four cases. One question each.', render: rules, solo: true }
   ].concat(CASES.map((c, i) => ({ id: 'case-' + c.k.toLowerCase(), k: 'Case ' + c.k, t: c.cap, render: cases, caseIdx: i })),
-    [{ id: 'hidden-path', k: 'Hidden path', t: 'Case D has a history.', render: hiddenPath, secret: true },
+    [{ id: 'almost', k: 'Almost there', t: 'We are almost at the summit.', render: almost, secret: true, solo: true },
+      { id: 'hidden-path', k: 'Hidden path', t: 'Case D has a history.', render: hiddenPath, secret: true },
       { id: 'summit', k: 'Summit', t: 'Where did you tip? Where did everyone else?', render: summit }]);
   const FIRST_CASE = STEPS.findIndex(x => x.render === cases);
-  const SECRET = STEPS.findIndex(x => x.secret), LAST = STEPS.length - 1;
+  const ALMOST = STEPS.findIndex(x => x.id === 'almost'), SECRET = STEPS.findIndex(x => x.id === 'hidden-path'), LAST = STEPS.length - 1;
+  // The hidden path is drawn on the ridge only after the "almost there" page has revealed it.
+  let revealed = false;
   const state = { step: -1 };
   let cleanup = null, caseUI = null, pollUI = null;
-  // The hidden path shows up only once all four cases have been answered.
+  // The two secret steps exist only once all four cases have been answered.
   const unlocked = () => { const v = store.myVotes(); return CASES.every(c => v[c.k]); };
   const shown = i => !STEPS[i].secret || unlocked();
   function neighbour(from, dir) {
@@ -108,6 +111,7 @@
   function go(i) {
     i = Math.max(0, Math.min(LAST, i));
     if (!shown(i)) i = LAST;
+    if (i === SECRET) revealed = true;
     const prev = STEPS[state.step], next = STEPS[i];
     if (state.step === i) return;
     state.step = i;
@@ -136,7 +140,8 @@
     const visible = STEPS.map((st, j) => j).filter(shown);
     prev.hidden = neighbour(i, -1) === i;
     prev.replaceChildren(icon('left'), 'Back');
-    next.hidden = n === i;
+    // On the reveal page the way forward stays out of sight until the animation has shown it.
+    next.hidden = n === i || (i === ALMOST && !revealed);
     if (n !== i) next.replaceChildren(STEPS[n].k, icon('right'));
     $('count').textContent = (visible.indexOf(i) + 1) + ' / ' + visible.length;
   }
@@ -156,25 +161,26 @@
   }
   // The hidden stop sits on the far side of the summit, reached by a tunnel from Case D.
   const HIDDEN = [1484, ridgeY(1484)], TUNNEL = [[1398, 318], [1446, 326]];
-  const STOPS = STEPS.map((st, i) => (st.secret ? HIDDEN : st.id === 'summit' ? SUMMIT : [STOP_X[i], ridgeY(STOP_X[i])]));
+  const STOPS = STEPS.map((st, i) => (i === SECRET ? HIDDEN : i === ALMOST ? [1400, ridgeY(1400)] : st.id === 'summit' ? SUMMIT : [STOP_X[i], ridgeY(STOP_X[i])]));
+  const DSTOP = STOPS[FIRST_CASE + 3];
   const stopEls = [];
   let climbed = null, secretLine = null;
   function buildRidge() {
     const ridge = $('ridge');
     climbed = s('polyline', { class: 'climbed' });
-    secretLine = s('polyline', { class: 'secret', points: [STOPS[SECRET - 1]].concat(TUNNEL, [HIDDEN, [1460, 282.5], [1446, 270.5], [1428, 264]]).map(p => p.join(',')).join(' ') });
+    secretLine = s('polyline', { class: 'secret', points: [DSTOP].concat(TUNNEL, [HIDDEN, [1460, 282.5], [1446, 270.5], [1428, 264]]).map(p => p.join(',')).join(' ') });
     ridge.append(s('svg', { viewBox: [VB.x, VB.y, VB.w, VB.h].join(' '), preserveAspectRatio: 'none', 'aria-hidden': 'true' },
       s('polyline', { points: SPUR.map(p => p.join(',')).join(' ') }),
       s('polyline', { points: RIDGE.map(p => p.join(',')).join(' ') }),
       s('polyline', { points: '1428,264 1428,216' }),
       secretLine, climbed));
     STEPS.forEach((st, i) => {
-      const kind = st.secret ? 'case secret' : st.render === cases ? 'case' : st.id === 'summit' ? 'flag' : 'pip';
+      const kind = i === SECRET ? 'case secret' : st.render === cases ? 'case' : st.id === 'summit' ? 'flag' : 'pip';
       const b = h('button', {
         class: 'wp ' + kind, type: 'button', id: 'stop-' + st.id, 'aria-label': st.k, title: st.k,
         style: 'left:' + ((STOPS[i][0] - VB.x) / VB.w * 100) + '%;top:' + ((STOPS[i][1] - VB.y) / VB.h * 100) + '%',
         on: { click: () => go(i) }
-      }, st.secret ? icon('key') : kind === 'case' ? CASES[st.caseIdx].k : kind === 'flag' ? icon('flag') : null);
+      }, i === SECRET ? icon('key') : kind === 'case' ? CASES[st.caseIdx].k : kind === 'flag' ? icon('flag') : null);
       stopEls.push(b); ridge.append(b);
     });
   }
@@ -184,14 +190,15 @@
       b.setAttribute('aria-current', j === i ? 'true' : 'false');
       b.classList.toggle('done', j < i);
       const old = b.querySelector('.badge'); if (old) old.remove();
-      const st = STEPS[j], key = st.secret ? 'D2' : st.render === cases ? CASES[st.caseIdx].k : null;
+      const st = STEPS[j], key = j === SECRET ? 'D2' : st.render === cases ? CASES[st.caseIdx].k : null;
       if (key && votes[key]) b.append(h('span', { class: 'badge' }, icon(votes[key].a)));
-      if (st.secret) { b.hidden = !shown(j); b.classList.toggle('fresh', !votes.D2 && j !== i); }
+      if (st.secret) b.hidden = !shown(j) || (j === SECRET && !revealed);
+      if (j === SECRET) b.classList.toggle('fresh', !votes.D2 && j !== i);
     });
-    secretLine.style.display = shown(SECRET) ? '' : 'none';
-    const x = STEPS[i].secret ? STOPS[SECRET - 1][0] : STOPS[i][0], pts = RIDGE.filter(p => p[0] < Math.min(x, 1428));
+    secretLine.style.display = shown(SECRET) && revealed ? '' : 'none';
+    const x = i === SECRET ? DSTOP[0] : STOPS[i][0], pts = RIDGE.filter(p => p[0] < Math.min(x, 1428));
     if (STEPS[i].id === 'summit') pts.push([1428, 264], SUMMIT);
-    else if (STEPS[i].secret) pts.push(STOPS[SECRET - 1], TUNNEL[0], TUNNEL[1], HIDDEN);
+    else if (i === SECRET) pts.push(DSTOP, TUNNEL[0], TUNNEL[1], HIDDEN);
     else pts.push(STOPS[i]);
     climbed.setAttribute('points', pts.map(p => p.join(',')).join(' '));
   }
@@ -570,8 +577,7 @@
       h('span', null, h('b', { class: 'chip dir', style: 'background:var(--a-soft);color:var(--a-ink)' }, 'Sales'), 'Director'),
       h('span', null, h('i', { class: 'dot', style: 'background:var(--a)' }), h('i', { class: 'dot', style: 'background:var(--a)' }), h('i', { class: 'dot', style: 'background:var(--a)' }), 'Team (not to scale)'),
       h('span', null, h('i', { class: 'ring' }), 'Moved in this case')));
-    ui.note = h('div');
-    side.append(detailCard('Tap a chip, a team or a badge.'), ui.note, ui.poll);
+    side.append(detailCard('Tap a chip, a team or a badge.'), ui.poll);
     casesUpdate(false);
   }
   function casesUpdate(animate) {
@@ -582,8 +588,8 @@
       first.set(el, { r: el.getBoundingClientRect(), bg: cs.backgroundColor, fg: cs.color });
     });
     casePlace(c);
-    pollUI = { el: ui.poll, key: CASES[c].k, token: 0, question: QUESTION, onVote: secretNote };
-    caseDetail(); renderPoll(); secretNote();
+    pollUI = { el: ui.poll, key: CASES[c].k, token: 0, question: QUESTION };
+    caseDetail(); renderPoll();
     if (!first.size) return;
     let n = 0;
     ui.movers.forEach(el => {
@@ -665,14 +671,7 @@
   function countsRow(t) {
     return h('div', { class: 'counts' }, ...ANSWERS.map(([k]) => h('span', null, icon(k), String(t[k]))));
   }
-  // Tells the reader on a case screen that the hidden path has opened.
-  function secretNote() {
-    if (!caseUI) return;
-    const open = unlocked() && !store.myVotes().D2;
-    caseUI.note.replaceChildren(open ? h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'A hidden path has opened.'),
-      h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, 'Take it', icon('right'))) : '');
-  }
-  // Draws the poll described by pollUI: { el, key, question, locked, compare, onVote }.
+  // Draws the poll described by pollUI: { el, key, question, locked, compare }.
   function renderPoll(status) {
     const pu = pollUI;
     if (!pu) return;
@@ -715,11 +714,65 @@
     }
     if (pollUI !== pu) return;
     renderPoll(status); renderRidge(); renderPager();
-    if (pu.onVote) pu.onVote();
+  }
+
+  /* ---------- step: almost there ---------- */
+  // A close-up of the summit. After a pause the mist clears and the hidden path appears, step by step.
+  function almost(stage) {
+    const X0 = 1262, Y0 = 196, W = 316, HT = 180, here = STOPS[ALMOST];
+    const poly = pts => pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    const ridge = RIDGE.filter(p => p[0] >= 1230);
+    const upTo = RIDGE.filter(p => p[0] >= 1230 && p[0] < here[0]).concat([here]);
+    const route = [here, [1410, 300], [1432, 320], [1462, 322], HIDDEN, [1473, 288.5], [1460, 282.5], [1446, 270.5], [1428, 264]];
+    // footprints: a dot every few units along the hidden route
+    const dots = [];
+    let keyAt = 0;
+    for (let i = 1, carry = 0; i < route.length; i++) {
+      const [ax, ay] = route[i - 1], [bx, by] = route[i], len = Math.hypot(bx - ax, by - ay);
+      for (let d = 6 - carry; d <= len; d += 6) dots.push([ax + (bx - ax) * d / len, ay + (by - ay) * d / len]);
+      carry = (carry + len) % 6;
+      if (route[i] === HIDDEN) keyAt = dots.length;
+    }
+    const cloud = (x, y, sc, cls) => s('g', { class: 'al-cloud ' + cls },
+      s('path', { transform: 'translate(' + x + ' ' + y + ') scale(' + sc + ')', d: 'M0 14a9 9 0 0 1 9-9 13 13 0 0 1 24-3 10 10 0 0 1 15 6 8 8 0 0 1 2 16H6a8 8 0 0 1-6-10z' }));
+    const svg = s('svg', { class: 'almostsvg', viewBox: [X0, Y0, W, HT].join(' '), role: 'img', 'aria-label': 'Close to the summit. A second, hidden path leads around the back of the mountain to the top.' },
+      cloud(1276, 214, 0.8, 'still'), cloud(1318, 236, 0.5, 'still'),
+      s('polygon', { class: 'al-land', points: poly([[1230, Y0 + HT + 10]].concat(ridge, [[1620, Y0 + HT + 10]])) }),
+      s('polyline', { class: 'al-ridge', points: poly(ridge) }),
+      s('polyline', { class: 'al-ridge', points: '1428,264 1428,226' }),
+      s('polyline', { class: 'al-direct', points: poly([here].concat(RIDGE.filter(p => p[0] > here[0] && p[0] <= 1428))) }),
+      s('polyline', { class: 'al-climbed', points: poly(upTo) }));
+    dots.forEach((p, i) => svg.append(s('circle', { class: 'al-step', cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 1.9, style: '--d:' + (0.9 + i * 0.05).toFixed(2) + 's' })));
+    const dStop = STOPS[FIRST_CASE + 3];
+    svg.append(
+      s('g', { transform: 'translate(' + dStop[0] + ' ' + dStop[1] + ')' }, s('circle', { class: 'al-stop', r: 8 }), s('text', { class: 'al-t', y: 3 }, 'D')),
+      s('g', { transform: 'translate(1428 218)' }, s('circle', { class: 'al-stop', r: 9 }), sicon('flag', 0, 0, 11, 'al-ic')),
+      s('g', { transform: 'translate(' + HIDDEN[0] + ' ' + HIDDEN[1] + ')' },
+        s('g', { class: 'al-key', style: '--d:' + (0.9 + keyAt * 0.05).toFixed(2) + 's' }, s('circle', { class: 'al-stop dashed', r: 9 }), sicon('key', 0, 0, 11, 'al-ic'))),
+      s('circle', { class: 'al-pulse', cx: here[0], cy: here[1], r: 5 }, reduced ? null : s('animate', { attributeName: 'r', from: 5, to: 15, dur: '1.6s', repeatCount: 'indefinite' }),
+        reduced ? null : s('animate', { attributeName: 'opacity', from: 0.7, to: 0, dur: '1.6s', repeatCount: 'indefinite' })),
+      s('circle', { class: 'al-here', cx: here[0], cy: here[1], r: 5 }),
+      cloud(1452, 262, 1.25, 'veil v1'), cloud(1498, 290, 1.0, 'veil v2'), cloud(1432, 300, 0.9, 'veil v3'), cloud(1520, 250, 0.75, 'veil v2'));
+    const cta = h('div', { class: 'panel almostcta' },
+      h('p', null, 'Case D has a history. Walk it before you reach the top.'),
+      h('div', { class: 'almostbtns' },
+        h('button', { class: 'ghost', type: 'button', id: 'skip-path', on: { click: () => go(LAST) } }, 'Straight to the summit'),
+        h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, icon('key'), 'Take the hidden path', icon('right'))));
+    stage.append(h('div', { class: 'panel almost' }, svg), cta);
+    const timers = [];
+    function finish() { revealed = true; cta.classList.add('on'); renderRidge(); renderPager(); }
+    if (revealed || reduced) {
+      svg.classList.add('done'); $('cap').textContent = 'But look. There is another way.'; finish();
+    } else {
+      timers.push(setTimeout(() => svg.classList.add('go'), 1300),
+        setTimeout(() => { $('cap').textContent = 'But look. There is another way.'; }, 2300),
+        setTimeout(finish, 1300 + (0.9 + dots.length * 0.05 + 0.5) * 1000));
+    }
+    return () => timers.forEach(clearTimeout);
   }
 
   /* ---------- step: the hidden path ---------- */
-  // Case D's history as a trail with eight waypoints. Walking to the end unlocks a second vote on Case D.
+  // Case D's history as a trail of waypoints. Walking to the end unlocks a second vote on Case D.
   let walked = -1;
   function hiddenPath(stage, side) {
     const H = D.HISTORY, last = H.beats.length - 1;
@@ -731,8 +784,8 @@
       locked: walked < last ? 'Walk the hidden path to vote again.' : null };
     stage.append(box, story);
     side.append(pu.el);
-    const WIDE = { W: 760, H: 330, pts: [[50, 64], [190, 262], [292, 276], [384, 232], [472, 188], [560, 142], [642, 96], [716, 46]] };
-    const TALL = { W: 400, H: 430, pts: [[44, 52], [112, 318], [184, 338], [236, 286], [280, 232], [318, 178], [350, 122], [372, 58]] };
+    const WIDE = { W: 760, H: 330, pts: [[50, 64], [190, 262], [292, 276], [400, 222], [506, 164], [612, 104], [716, 46]] };
+    const TALL = { W: 400, H: 430, pts: [[44, 52], [112, 318], [184, 338], [244, 274], [292, 206], [334, 132], [372, 58]] };
     const poly = pts => pts.map(p => p.join(',')).join(' ');
     function drawMap() {
       const L = mode === 'wide' ? WIDE : TALL, p = L.pts, top = p[last];
@@ -805,8 +858,8 @@
     }));
     const crowd = h('div', { class: 'crowd' }), tips = h('div', { class: 'tips' });
     const crowdN = h('small'), tipN = h('small');
-    if (open && !votes.D2) stage.append(h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'A hidden path has opened.'),
-      h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(SECRET) } }, 'Take it', icon('right'))));
+    if (open && !votes.D2) stage.append(h('div', { class: 'secretnote' }, icon('key'), h('span', null, 'There is another way up.'),
+      h('button', { class: 'primary', type: 'button', id: 'take-path', on: { click: () => go(revealed ? SECRET : ALMOST) } }, revealed ? 'Take it' : 'Look', icon('right'))));
     stage.append(
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Your route'), route),
       h('div', { class: 'panel' }, h('div', { class: 'ptitle' }, 'Everyone', crowdN), crowd),
@@ -908,7 +961,7 @@
     $('who-name').textContent = me.name;
     state.step = -1;
     if (cleanup) { cleanup(); cleanup = null; }
-    caseUI = null; pollUI = null; walked = -1;
+    caseUI = null; pollUI = null; walked = -1; revealed = !!store.myVotes().D2;
     go(step);
   }
 

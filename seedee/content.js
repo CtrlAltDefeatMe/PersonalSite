@@ -154,11 +154,10 @@ window.SeeDee = (function () {
         { who: 'A', t: 'Olivia, an experienced industry leader, and Emily, a savvy legal adviser, set up Company A with outside investors and lenders.' },
         { who: 'A', t: 'Olivia becomes CEO. Emily becomes CLO.' },
         { t: 'Company A buys SeeDee for 100. The group is renamed O.E. SeeDee.' }] },
-      { label: 'IP moves', icon: 'ip', when: 'Soon after', title: 'The IP moves to A', lines: [
+      { label: 'Reset', icon: 'swap', when: 'Soon after', title: 'The IP moves. The leaders change.', lines: [
         { t: 'All non-routine IP is transferred from B to A.' },
         { t: 'It is valued with the acquisition price method. Assume nobody questions the price.' },
-        { who: 'A', t: 'From now on, Company A funds all IP development that B carries out.' }] },
-      { label: 'New team', icon: 'swap', when: 'Turnaround', title: 'New leaders in B', lines: [
+        { who: 'A', t: 'From now on, Company A funds all IP development that B carries out.' },
         { who: 'A', t: 'Olivia and Emily replace much of B’s old leadership.' },
         { who: 'B', t: 'The new hires get a mandate: lower costs, better quality, better service, more innovation.' }] },
       { label: 'The fix', icon: 'wrench', when: 'Turnaround', title: 'Who did what', lines: [

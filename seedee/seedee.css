@@ -383,6 +383,36 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 .paths div { display: flex; align-items: center; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .empty { color: var(--muted); font-size: 14px; padding: 18px 0; text-align: center; }
 
+/* Almost there: close-up of the summit where the hidden path is revealed */
+.panel.almost { background: var(--water); border-color: transparent; padding: 0; overflow: hidden; }
+.almostsvg { display: block; width: 100%; height: auto; max-height: 62vh; }
+.al-land { fill: var(--land); }
+.al-ridge { fill: none; stroke: var(--ridge); stroke-width: 1; stroke-linejoin: round; stroke-linecap: round; }
+.al-direct { fill: none; stroke: var(--ink); stroke-width: 1; stroke-dasharray: .5 3; stroke-linecap: round; }
+.al-climbed { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+.al-here { fill: var(--ink); stroke: var(--land); stroke-width: 1.5; } .al-pulse { fill: none; stroke: var(--ink); stroke-width: 1; }
+.al-stop { fill: var(--surface); stroke: var(--ridge); stroke-width: 1; } .al-stop.dashed { stroke: var(--ink); stroke-dasharray: 2 1.6; }
+.al-t { fill: var(--ink); font: 600 8.5px var(--font); text-anchor: middle; } .al-ic { color: var(--ink); }
+.al-cloud path { fill: var(--surface); }
+.al-cloud.still { opacity: .7; }
+.al-cloud.veil { transition: transform 2s ease-in-out, opacity 2s ease-in-out; }
+.go .al-cloud.veil, .done .al-cloud.veil { opacity: 0; transform: translate(70px, -14px); }
+.go .al-cloud.v2, .done .al-cloud.v2 { transform: translate(90px, 6px); transition-delay: .15s; }
+.go .al-cloud.v3, .done .al-cloud.v3 { transform: translate(-60px, 26px); transition-delay: .3s; }
+.al-step { fill: var(--ink); opacity: 0; }
+.go .al-step { animation: alstep .25s ease-out forwards; animation-delay: var(--d); }
+.done .al-step { opacity: 1; }
+.al-key { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.go .al-key { animation: alpop .55s cubic-bezier(.3, 1.6, .5, 1) forwards; animation-delay: var(--d); }
+.done .al-key { opacity: 1; }
+@keyframes alstep { to { opacity: 1; } }
+@keyframes alpop { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: scale(1); } }
+.almostcta { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; visibility: hidden; opacity: 0; transform: translateY(6px); transition: opacity .5s, transform .5s; }
+.almostcta.on { visibility: visible; opacity: 1; transform: none; }
+.almostcta p { font-size: 16px; flex: 1 1 260px; }
+.almostbtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.almostbtns .i { font-size: 17px; }
+
 /* Hidden path: appears on the ridge once all four cases are answered */
 .ridge polyline.secret { stroke: var(--ink); stroke-width: 1.6; stroke-dasharray: 2 5; }
 .wp.secret { border-style: dashed; border-color: var(--ink); }
@@ -439,4 +469,4 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
   .orgcol { border-top: 1.5px solid var(--line); }
   .panel { padding: 14px; }
 }
-@media (prefers-reduced-motion: reduce) { .gear.spin, .drive path, .wp.secret.fresh { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .gear.spin, .drive path, .wp.secret.fresh { animation: none; } .almostcta, .al-cloud.veil { transition: none; } }
