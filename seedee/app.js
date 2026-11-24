@@ -95,7 +95,8 @@
       { id: 'summit', k: 'Summit', t: 'Where did you tip? Where did everyone else?', render: summit }]);
   const FIRST_CASE = STEPS.findIndex(x => x.render === cases);
   const ALMOST = STEPS.findIndex(x => x.id === 'almost'), SECRET = STEPS.findIndex(x => x.id === 'hidden-path'), LAST = STEPS.length - 1;
-  // The hidden path is drawn on the ridge only after the "almost there" page has revealed it.
+  // The hidden path is drawn on the ridge only after the "almost there" page has revealed it in this
+  // visit. It starts hidden every time, also for someone who walked it on an earlier visit.
   let revealed = false;
   const state = { step: -1 };
   let cleanup = null, caseUI = null, pollUI = null;
@@ -761,7 +762,7 @@
     stage.append(h('div', { class: 'panel almost' }, svg), cta);
     const timers = [];
     function finish() { revealed = true; cta.classList.add('on'); renderRidge(); renderPager(); }
-    if (revealed || reduced) {
+    if (revealed) {
       svg.classList.add('done'); $('cap').textContent = 'But look. There is another way.'; finish();
     } else {
       timers.push(setTimeout(() => svg.classList.add('go'), 1300),
@@ -850,7 +851,7 @@
     const votes = store.myVotes(), open = unlocked();
     // The polls on show: the four cases, plus the second vote on D for people who found the hidden path.
     const POLLS = CASES.map((cs, i) => ({ key: cs.k, label: cs.k, name: 'Case ' + cs.k, step: FIRST_CASE + i }))
-      .concat(open ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
+      .concat(open && (revealed || votes.D2) ? [{ key: 'D2', label: 'D+', name: 'Case D with its history', step: SECRET }] : []);
     const route = h('div', { class: 'route' }, ...POLLS.map(pl => {
       const v = votes[pl.key];
       return h('button', { class: 'rstop', type: 'button', id: 'route-' + pl.key, 'aria-label': pl.name + ': ' + (v ? ANSWERS.find(a => a[0] === v.a)[1] : 'not answered'), on: { click: () => go(pl.step) } },
@@ -961,7 +962,7 @@
     $('who-name').textContent = me.name;
     state.step = -1;
     if (cleanup) { cleanup(); cleanup = null; }
-    caseUI = null; pollUI = null; walked = -1; revealed = !!store.myVotes().D2;
+    caseUI = null; pollUI = null; walked = -1; revealed = false;
     go(step);
   }
 

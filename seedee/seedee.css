@@ -469,4 +469,10 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
   .orgcol { border-top: 1.5px solid var(--line); }
   .panel { padding: 14px; }
 }
-@media (prefers-reduced-motion: reduce) { .gear.spin, .drive path, .wp.secret.fresh { animation: none; } .almostcta, .al-cloud.veil { transition: none; } }
+/* Reduced motion: the reveal still happens, as fades only, with nothing sliding or scaling. */
+@media (prefers-reduced-motion: reduce) {
+  .gear.spin, .drive path, .wp.secret.fresh { animation: none; }
+  .go .al-cloud.veil, .done .al-cloud.veil { transform: none; }
+  .go .al-key { animation-name: alstep; }
+  .almostcta { transform: none; }
+}
