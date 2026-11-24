@@ -33,7 +33,11 @@ window.SeeDee = (function () {
     refresh: 'M20 11a8 8 0 1 0-2.3 6.3M20 5v6h-6',
     up: 'M12 19V5M6 11l6-6 6 6',
     down: 'M12 5v14M6 13l6 6 6-6',
-    flat: 'M4 12h16'
+    flat: 'M4 12h16',
+    car: 'M3 13l2-5h14l2 5v5H3zM3 13h18M7 18v2M17 18v2M7 15.5h.01M17 15.5h.01',
+    plane: 'M12 2c1 0 1.5 1 1.5 2.5V9l7.5 4.5v2l-7.5-2V18l2.5 2v1.5l-4-1-4 1V20l2.5-2v-4.5l-7.5 2v-2L10.5 9V4.5C10.5 3 11 2 12 2z',
+    cpu: 'M7 7h10v10H7zM10 10h4v4h-4zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4',
+    digger: 'M3 18h12a2 2 0 0 0 0-4H3a2 2 0 0 0 0 4zM5 14V9h5l2 5M14 12l5-7 2 4-2 2'
   };
 
   const LANES = [
@@ -44,9 +48,12 @@ window.SeeDee = (function () {
     { key: 'fin', name: 'Finance and corporate' }
   ];
 
+  // Names of the two product lines (Product X and Product Y in the original case study).
+  const PRODUCTS = { x: 'Xentra', y: 'Yotta' };
+
   const CASES = [
     { k: 'A', cap: 'All leaders sit in A. B has sales and service staff, plus a few corporate people.' },
-    { k: 'B', cap: 'Product Y R&D, Sales and Service move to B. So does half the Product X team.' },
+    { k: 'B', cap: PRODUCTS.y + ' R&D, Sales and Service move to B. So does half the ' + PRODUCTS.x + ' team.' },
     { k: 'C', cap: 'Procurement and Quality move to B as well.' },
     { k: 'D', cap: 'Almost everyone is in B. The CEO, CLO and A’s board stay in A.' }
   ];
@@ -55,9 +62,9 @@ window.SeeDee = (function () {
   const ROLES = [
     { id: 'ceo', label: 'CEO', lane: 0, lvl: 'exec', loc: 'AAAA', name: 'Chief Executive Officer', does: 'Five direct reports: CLO, CFO, COO, Chief R&D Officer and Chief Customer Development Officer.', note: { 3: 'Sits on Company A’s board, which meets in Country A and approves all key strategic decisions.' } },
     { id: 'clo', label: 'CLO', lane: 0, lvl: 'exec', loc: 'AAAA', name: 'Chief Legal Officer', does: 'IP protection, major contracts, compliance and governance.' },
-    { id: 'crdo', label: 'Chief R&D', lane: 1, lvl: 'exec', loc: 'AAAB', name: 'Chief R&D Officer', does: 'Leads R&D and engineering, a key value driver. Two directors report in: Product X and Product Y.' },
-    { id: 'rdx', label: 'Product X', lane: 1, lvl: 'dir', loc: 'AAAB', name: 'R&D Director, Product X', does: 'Technical development, engineering direction and product support for Product X.', note: { 1: 'Stays in A while about half the team moves to B.', 2: 'Stays in A while about half the team sits in B.' } },
-    { id: 'rdy', label: 'Product Y', lane: 1, lvl: 'dir', loc: 'ABBB', name: 'R&D Director, Product Y', does: 'Technical development, engineering direction and product support for Product Y.' },
+    { id: 'crdo', label: 'Chief R&D', lane: 1, lvl: 'exec', loc: 'AAAB', name: 'Chief R&D Officer', does: 'Leads R&D and engineering, a key value driver. Two directors report in: ' + PRODUCTS.x + ' and ' + PRODUCTS.y + '.' },
+    { id: 'rdx', label: PRODUCTS.x, lane: 1, lvl: 'dir', loc: 'AAAB', name: 'R&D Director, ' + PRODUCTS.x, does: 'Technical development, engineering direction and product support for the ' + PRODUCTS.x + ' line.', note: { 1: 'Stays in A while about half the team moves to B.', 2: 'Stays in A while about half the team sits in B.' } },
+    { id: 'rdy', label: PRODUCTS.y, lane: 1, lvl: 'dir', loc: 'ABBB', name: 'R&D Director, ' + PRODUCTS.y, does: 'Technical development, engineering direction and product support for the ' + PRODUCTS.y + ' line.' },
     { id: 'coo', label: 'COO', lane: 2, lvl: 'exec', loc: 'AAAB', name: 'Chief Operating Officer', does: 'Supply chain and operating execution, including the contract manufacturers in Country C.' },
     { id: 'proc', label: 'Procurement', lane: 2, lvl: 'dir', loc: 'AABB', name: 'Procurement Director', does: 'Sourcing from the third-party contract manufacturers.' },
     { id: 'log', label: 'Logistics', lane: 2, lvl: 'dir', loc: 'AAAB', name: 'Logistics Director', does: 'Production planning and logistics.' },
@@ -74,8 +81,8 @@ window.SeeDee = (function () {
 
   // n dots per team are illustrative; inB is how many of them sit in Company B in cases A-D.
   const TEAMS = [
-    { id: 'tx', label: 'X', lane: 1, n: 6, inB: [0, 3, 3, 6], name: 'Product X engineers', notes: ['All in A.', 'About half move to B. Their director stays in A.', 'About half in B. Their director stays in A.', 'All in B.'] },
-    { id: 'ty', label: 'Y', lane: 1, n: 6, inB: [0, 6, 6, 6], name: 'Product Y engineers', notes: ['All in A.', 'All move to B with their director.', 'All in B.', 'All in B.'] },
+    { id: 'tx', label: PRODUCTS.x, lane: 1, n: 6, inB: [0, 3, 3, 6], name: PRODUCTS.x + ' engineers', notes: ['All in A.', 'About half move to B. Their director stays in A.', 'About half in B. Their director stays in A.', 'All in B.'] },
+    { id: 'ty', label: PRODUCTS.y, lane: 1, n: 6, inB: [0, 6, 6, 6], name: PRODUCTS.y + ' engineers', notes: ['All in A.', 'All move to B with their director.', 'All in B.', 'All in B.'] },
     { id: 'tp', label: 'Proc', lane: 2, n: 4, inB: [0, 0, 4, 4], name: 'Procurement team', notes: ['All in A.', 'All in A.', 'All move to B with their director.', 'All in B.'] },
     { id: 'tl', label: 'Log', lane: 2, n: 4, inB: [0, 0, 0, 4], name: 'Logistics team', notes: ['All in A.', 'All in A.', 'All in A.', 'All in B.'] },
     { id: 'tq', label: 'QA', lane: 2, n: 4, inB: [0, 0, 4, 4], name: 'Quality team', notes: ['All in A.', 'All in A.', 'All move to B with their director.', 'All in B.'] },
@@ -95,10 +102,10 @@ window.SeeDee = (function () {
     quality: { title: 'Product quality', tag: 'Key value driver', lines: ['Performance, durability, precision and repeatability.', 'Customers see the products as the best and most reliable in their category.'] },
     customers: { title: 'Customer relationships', tag: 'Not a primary value driver', lines: ['Important, but customers ultimately buy for the product.'] },
     price: { title: 'Premium price', tag: 'Commercial model', lines: ['Sold at the premium end of the market, on performance, engineering quality and reliability.'] },
-    lines: { title: 'Product X and Product Y', tag: 'Two product lines', lines: ['Some shared technology and engineering know-how.', 'Different industry segments and materially different designs, so each needs its own development.'] },
+    lines: { title: PRODUCTS.x + ' and ' + PRODUCTS.y, tag: 'Two product lines', lines: ['Some shared technology and engineering know-how.', 'Different industry segments and materially different designs, so each needs its own development.', 'Called Product X and Product Y in the original case study.'] },
     service: { title: 'Service is in the price', tag: 'No separate fee', lines: ['Installation, technical support and troubleshooting come with the product.', 'After warranty, customers pay only for parts.'] },
     buyers: { title: 'Business customers', tag: 'B2B machine tools', lines: ['Manufacturers in automotive, aerospace, electronics, heavy equipment and general industry.'] },
-    ip: { title: 'Intangibles', tag: 'Company A is legal owner', lines: ['Product technology, engineering know-how, design specifications, testing data, process knowledge, software features, trade names, service know-how and application expertise.', 'Some is shared across the group, some is specific to Product X or Product Y.'] }
+    ip: { title: 'Intangibles', tag: 'Company A is legal owner', lines: ['Product technology, engineering know-how, design specifications, testing data, process knowledge, software features, trade names, service know-how and application expertise.', 'Some is shared across the group, some is specific to ' + PRODUCTS.x + ' or ' + PRODUCTS.y + '.'] }
   };
 
   const FLOW = {
@@ -126,5 +133,5 @@ window.SeeDee = (function () {
     b: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
   };
 
-  return { ICON, LANES, CASES, ROLES, TEAMS, ANCHORS, BUSINESS, FLOW, PRICE, RISK };
+  return { ICON, LANES, PRODUCTS, CASES, ROLES, TEAMS, ANCHORS, BUSINESS, FLOW, PRICE, RISK };
 })();

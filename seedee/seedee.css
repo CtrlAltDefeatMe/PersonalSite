@@ -25,6 +25,8 @@
   --p-no: #253650;
   --p-unc: #a9b4c2;
   --tile: #cce1f5;
+  --bp-bg: #22335a; --bp-ink: #eef5fd; --bp-line: #bcd3ee; --bp-dim: #8fabd0; --bp-a: #d4e8fa; --bp-b: #7da1d2;
+  --bp-grid: #ffffff0c; --bp-grid2: #ffffff17;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Calibri, Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -145,19 +147,41 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
 .tile .i { font-size: 20px; color: var(--ridge); }
 .tile:hover { border-color: var(--ink); }
 
-/* Step: business */
-.gears { display: block; width: 100%; max-width: 560px; margin-inline: auto; height: auto; }
-.gearbtn { cursor: pointer; outline: none; }
-.gear.spin { animation: spin 60s linear infinite; }
+/* Step: business. One fixed look in both themes: a navy engineering blueprint. */
+.bp { --focus: #ffffff; background-color: var(--bp-bg); border-color: transparent; padding: 12px;
+  background-image: linear-gradient(var(--bp-grid2) 1px, transparent 1px), linear-gradient(90deg, var(--bp-grid2) 1px, transparent 1px), linear-gradient(var(--bp-grid) 1px, transparent 1px), linear-gradient(90deg, var(--bp-grid) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; background-position: -1px -1px; }
+.bpsvg { display: block; width: 100%; height: auto; max-width: 860px; margin-inline: auto; }
+.bpsvg.tall { max-width: 470px; }
+.hot { cursor: pointer; outline: none; }
+.hot.sel { outline: none; }
+.hot .hit { fill: transparent; }
+.hot:hover .hl, .hot:focus-visible .hl, .hot.sel .hl { stroke: #ffffff; stroke-width: 3; stroke-dasharray: none; }
+.gear.spin { animation: spin 30s linear infinite; }
 .gear.rev { animation-direction: reverse; }
-.gear-a { fill: var(--a); } .gear-b { fill: var(--ridge); } .gear-c { fill: var(--p-unc); }
-.hub { fill: var(--surface); stroke: var(--surface); stroke-width: 0; }
-.gearbtn:hover .hub, .gearbtn:focus-visible .hub, .gearbtn.sel .hub { stroke: var(--focus); stroke-width: 4; }
-.gearbtn.sel { outline: none; }
-.glabel { fill: var(--ink); font: 600 15px var(--font); text-anchor: middle; }
-.gsub { fill: var(--muted); font: 12.5px var(--font); text-anchor: middle; }
-.gicon { color: var(--ink); }
+.gear-a { fill: var(--bp-a); } .gear-b { fill: var(--bp-b); }
+.gear-c { fill: var(--bp-bg); stroke: var(--bp-dim); stroke-width: 2; stroke-dasharray: 5 4; }
+.hub { fill: var(--bp-bg); }
+.glabel { fill: var(--bp-ink); font: 600 15px var(--font); text-anchor: middle; }
+.bpicon { color: var(--bp-ink); }
+.dim line { stroke: var(--bp-dim); stroke-width: 1; }
+.dim text, .bpcaps { fill: var(--bp-dim); font: 600 10.5px var(--font); letter-spacing: .09em; }
+.dim text { text-anchor: middle; }
+.bpcaps.strong { fill: var(--bp-ink); }
+.drive path, .chev { fill: none; stroke: var(--bp-line); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.drive path { animation: drive 1.4s ease-in-out infinite; }
+.drive path:nth-child(2) { animation-delay: .25s; }
+.tagshape { fill: var(--bp-a); } .taghole { fill: var(--bp-bg); }
+.tagtext { fill: var(--bp-bg); font: 700 18px var(--font); letter-spacing: -.2px; } .tagicon { color: var(--bp-bg); }
+.bpbadge { fill: var(--bp-bg); stroke: var(--bp-line); stroke-width: 1.5; }
+.bpsmall { fill: var(--bp-line); font: 600 11.5px var(--font); }
+.lanelabel { fill: var(--bp-ink); font: 700 14px var(--font); }
+.belt { fill: var(--bp-bg); stroke: var(--bp-line); stroke-width: 1.5; } .roller { fill: var(--bp-dim); }
+.part { fill: var(--bp-a); } .part-y { fill: var(--bp-b); } .parthole { fill: var(--bp-bg); }
+.rail { stroke: var(--bp-dim); stroke-width: 1.5; }
+.tb { fill: var(--bp-bg); stroke: var(--bp-line); stroke-width: 1.5; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes drive { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 
 /* Step: flow */
 .flowsvg { display: block; width: 100%; height: auto; max-width: 700px; margin-inline: auto; }
@@ -375,4 +399,4 @@ footer { display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: space-b
   .orgcol { border-top: 1.5px solid var(--line); }
   .panel { padding: 14px; }
 }
-@media (prefers-reduced-motion: reduce) { .gear.spin { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .gear.spin, .drive path { animation: none; } }

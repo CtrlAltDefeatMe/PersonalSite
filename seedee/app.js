@@ -190,30 +190,91 @@
     }
     return d + 'Z';
   }
+  // Drawn as an engineering blueprint: the value drivers are a gear train (size = importance)
+  // that turns out two product lines at a premium price for five customer industries.
   function business(stage, side) {
-    // Three meshing gears: size = importance as a value driver.
+    const P = D.PRODUCTS;
+    const box = h('div', { class: 'panel bp' });
+    stage.append(box, h('div', { class: 'legend' }, h('span', null, 'Bigger gear, bigger value driver.')));
+    side.append(detailCard('Tap any part of the drawing.'));
     const A = { x: 125, y: 150, r: 100, n: 20 }, B = { x: 304, y: 131, r: 80, n: 16 }, C = { x: 389, y: 216, r: 40, n: 8 };
     const phi = Math.atan2(B.y - A.y, B.x - A.x), psi = Math.atan2(C.y - B.y, C.x - B.x);
     const a0 = phi, b0 = phi + Math.PI + Math.PI / B.n, c0 = psi + Math.PI + Math.PI / C.n + (psi - b0) * B.n / C.n;
-    const mk = (g, a, cls, key, secs, rev, hub, ic, label) => s('g', { transform: 'translate(' + g.x + ' ' + g.y + ')' },
-      s('g', { class: 'gearbtn', 'data-key': key },
-        s('path', { class: 'gear spin ' + cls + (rev ? ' rev' : ''), style: 'animation-duration:' + secs + 's', d: gearPath(g.r, g.n, a) }),
+    const tr = (x, y, rot) => 'translate(' + x + ' ' + y + ')' + (rot ? ' rotate(' + rot + ')' : '');
+    const gear = (g, a, cls, key, secs, rev, hub, ic, label) => s('g', { transform: tr(g.x, g.y) },
+      s('g', { class: 'hot', 'data-key': key },
+        s('path', { class: 'gear spin hl ' + cls + (rev ? ' rev' : ''), style: 'animation-duration:' + secs + 's', d: gearPath(g.r, g.n, a) }),
         s('circle', { class: 'hub', r: hub }),
-        sicon(ic, 0, label ? -12 : 0, label ? 26 : 22, 'gicon'),
+        sicon(ic, 0, label ? -12 : 0, label ? 26 : 22, 'bpicon'),
         label ? s('text', { class: 'glabel', y: 20 }, label) : null));
-    const svg = s('svg', { class: 'gears', viewBox: '10 34 440 258', role: 'group', 'aria-label': 'Value drivers' },
-      mk(A, a0, 'gear-a', 'rd', 60, false, 54, 'rd', 'R&D'),
-      mk(B, b0, 'gear-b', 'quality', 48, true, 46, 'star', 'Quality'),
-      mk(C, c0, 'gear-c', 'customers', 24, false, 21, 'cust', null),
-      s('text', { class: 'gsub', x: C.x, y: C.y + 64 }, 'Customers'));
-    stage.append(
-      h('div', { class: 'panel' }, svg),
-      h('div', { class: 'tiles' },
-        tile('price', 'tag', 'Premium price'), tile('lines', 'lines', 'Product X · Product Y'),
-        tile('service', 'wrench', 'Service included'), tile('buyers', 'factory', 'B2B customers'), tile('ip', 'ip', 'Intangibles')),
-      h('div', { class: 'legend' }, h('span', null, 'Bigger gear, bigger value driver.')));
-    side.append(detailCard('Tap a gear or a tile.'));
-    wire(stage, D.BUSINESS);
+    const dim = (x1, x2, y, label, below) => s('g', { class: 'dim' },
+      s('line', { x1, x2, y1: y, y2: y }), s('line', { x1, x2: x1, y1: y - 5, y2: y + 5 }), s('line', { x1: x2, x2, y1: y - 5, y2: y + 5 }),
+      s('text', { x: (x1 + x2) / 2, y: below ? y + 16 : y - 7 }, label));
+    let mode = null;
+    function draw() {
+      const next = box.clientWidth >= 600 ? 'wide' : 'tall';
+      if (next === mode) return;
+      mode = next;
+      const L = mode === 'wide'
+        ? { W: 800, H: 386, gears: [0, 22], out: [468, 28], drive: [446, 176, 0], tb: [468, 332] }
+        : { W: 440, H: 716, gears: [0, 22], out: [58, 356], drive: [220, 322, 90], tb: [110, 660] };
+      const svg = s('svg', { class: 'bpsvg ' + mode, viewBox: '0 0 ' + L.W + ' ' + L.H, role: 'group', 'aria-label': 'What drives the business' });
+
+      // gear train
+      svg.append(s('g', { transform: tr(L.gears[0], L.gears[1]) },
+        dim(25, 225, 28, 'KEY DRIVER'), dim(232, 376, 34, 'KEY DRIVER'), dim(349, 429, 276, 'NOT PRIMARY', true),
+        gear(A, a0, 'gear-a', 'rd', 30, false, 54, 'rd', 'R&D'),
+        gear(B, b0, 'gear-b', 'quality', 24, true, 46, 'star', 'Quality'),
+        gear(C, c0, 'gear-c', 'customers', 12, false, 21, 'cust', null)));
+      svg.append(s('g', { class: 'drive', transform: tr(L.drive[0], L.drive[1], L.drive[2]) },
+        s('path', { d: 'M0 -7l7 7-7 7' }), s('path', { d: 'M9 -7l7 7-7 7' })));
+
+      // what comes out: price tag, service, two product lines, customers
+      const out = s('g', { transform: tr(L.out[0], L.out[1]) });
+      out.append(s('g', { class: 'hot', 'data-key': 'price', transform: tr(40, 14, -4) },
+        s('path', { class: 'tagshape hl', d: 'M22 0H172a8 8 0 0 1 8 8V70a8 8 0 0 1-8 8H22L0 39Z' }),
+        s('circle', { class: 'taghole', cx: 20, cy: 39, r: 4.5 }),
+        sicon('star', 54, 39, 28, 'tagicon'),
+        s('text', { class: 'tagtext', x: 78, y: 34 }, 'Premium'), s('text', { class: 'tagtext', x: 78, y: 55 }, 'price')));
+      out.append(s('g', { class: 'hot', 'data-key': 'service', transform: tr(246, 52) },
+        s('circle', { class: 'bpbadge hl', r: 21 }), sicon('wrench', 0, 0, 22, 'bpicon'),
+        s('text', { class: 'bpsmall', y: 37, 'text-anchor': 'middle' }, '+ Service')));
+      const clip = 'beltclip-' + mode;
+      out.append(s('clipPath', { id: clip }, s('rect', { x: 0, y: 0, width: 252, height: 300 })));
+      const lanes = s('g', { class: 'hot', 'data-key': 'lines' }, s('rect', { class: 'hit', x: -6, y: 110, width: 264, height: 124 }));
+      [[P.x, 156, 'part'], [P.y, 220, 'part part-y']].forEach(([name, y, cls], li) => {
+        lanes.append(s('text', { class: 'lanelabel', x: 0, y: y - 26 }, name), s('rect', { class: 'belt hl', x: 0, y, width: 252, height: 10, rx: 5 }));
+        for (let x = 11; x < 250; x += 23) lanes.append(s('circle', { class: 'roller', cx: x, cy: y + 5, r: 2.2 }));
+        const run = s('g', { 'clip-path': 'url(#' + clip + ')' });
+        for (let k = 0; k < 4; k++) {
+          const shape = li === 0
+            ? s('polygon', { class: cls, points: [0, 1, 2, 3, 4, 5].map(i => (9 * Math.cos(i * Math.PI / 3)).toFixed(1) + ',' + (9 * Math.sin(i * Math.PI / 3)).toFixed(1)).join(' ') })
+            : s('g', null, s('circle', { class: cls, r: 9 }), s('circle', { class: 'parthole', r: 3.4 }));
+          const g = s('g', { transform: tr(36 + k * 62, y - 10) }, shape);
+          if (!reduced) g.append(s('animateTransform', { attributeName: 'transform', type: 'translate', from: '-12 ' + (y - 10), to: '264 ' + (y - 10), dur: '9s', begin: '-' + (k * 2.25 + li) + 's', repeatCount: 'indefinite' }));
+          run.append(g);
+        }
+        lanes.append(run, s('path', { class: 'chev', d: 'M260 ' + y + 'l5 5-5 5' }));
+      });
+      out.append(lanes);
+      const buyers = s('g', { class: 'hot', 'data-key': 'buyers' }, s('rect', { class: 'hit', x: 276, y: 0, width: 56, height: 296 }),
+        s('text', { class: 'bpcaps', x: 304, y: 12, 'text-anchor': 'middle' }, 'B2B'), s('line', { class: 'rail', x1: 304, x2: 304, y1: 44, y2: 268 }));
+      ['car', 'plane', 'cpu', 'digger', 'factory'].forEach((ic, i) => buyers.append(s('circle', { class: 'bpbadge hl', cx: 304, cy: 44 + i * 56, r: 20 }), sicon(ic, 304, 44 + i * 56, 22, 'bpicon')));
+      out.append(buyers);
+      svg.append(out);
+
+      // title block, as on an engineering drawing
+      svg.append(s('g', { class: 'hot', 'data-key': 'ip', transform: tr(L.tb[0], L.tb[1]) },
+        s('rect', { class: 'tb hl', width: 220, height: 46 }), s('line', { class: 'rail', x1: 46, x2: 46, y1: 0, y2: 46 }),
+        sicon('ip', 23, 23, 22, 'bpicon'),
+        s('text', { class: 'bpcaps', x: 58, y: 19 }, 'O.E. SEEDEE LTD.'), s('text', { class: 'bpcaps strong', x: 58, y: 35 }, 'IP OWNER · COMPANY A')));
+      box.replaceChildren(svg);
+      showDetail(null);
+      wire(box, D.BUSINESS);
+    }
+    draw();
+    const ro = new ResizeObserver(draw); ro.observe(box);
+    return () => ro.disconnect();
   }
 
   /* ---------- step: the flow ---------- */
