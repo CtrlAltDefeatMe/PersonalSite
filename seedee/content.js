@@ -177,10 +177,20 @@ window.SeeDee = (function () {
     chart: { a: [-30, -18, -5, 14, 26], b: 12 }
   };
 
-  // Ingredients for a made-up sign-in name.
+  // Ingredients for a made-up sign-in name, e.g. "Residual Marmot of Appenzell".
+  // 40 x 40 x 30 = 48,000 combinations, so about a hundred people rarely draw the same one.
   const ALIAS = {
-    first: ['Arm’s-Length', 'Residual', 'Routine', 'Tested', 'Comparable', 'Interquartile', 'Benchmark', 'Intangible', 'Limited-Risk', 'Marginal'],
-    second: ['Marmot', 'Ibex', 'Alpinist', 'Yodeler', 'Edelweiss', 'Chamois', 'Glacier', 'Eagle', 'Mountaineer', 'Avalanche']
+    first: ['Arm’s-Length', 'Residual', 'Routine', 'Tested', 'Comparable', 'Interquartile', 'Benchmark', 'Intangible', 'Limited-Risk', 'Marginal',
+      'Uncontrolled', 'Controlled', 'Median', 'Hard-to-Value', 'Low-Risk', 'Entrepreneurial', 'Cost-Plus', 'Resale-Minus', 'Profit-Split', 'Transactional',
+      'Bilateral', 'Unilateral', 'Advance', 'Mutual', 'Secondary', 'Correlative', 'Periodic', 'Contingent', 'Embedded', 'Bundled',
+      'Synergistic', 'Functional', 'Contractual', 'Delineated', 'Stripped', 'Fully-Fledged', 'Simplified', 'Documented', 'Aggregated', 'Reliable'],
+    second: ['Marmot', 'Ibex', 'Alpinist', 'Yodeler', 'Edelweiss', 'Chamois', 'Glacier', 'Eagle', 'Mountaineer', 'Avalanche',
+      'Alphorn', 'Cowbell', 'Gondola', 'Crevasse', 'Summit', 'Sherpa', 'Yeti', 'Snowshoe', 'Pickaxe', 'Fondue',
+      'Raclette', 'Gentian', 'Lynx', 'Ptarmigan', 'Stoat', 'Ski Lift', 'Cable Car', 'St. Bernard', 'Dairy Cow', 'Mountain Goat',
+      'Rucksack', 'Carabiner', 'Compass', 'Snowflake', 'Larch', 'Pine Marten', 'Bearded Vulture', 'Capercaillie', 'Trail Marker', 'Hiking Boot'],
+    place: ['Appenzell', 'Säntis', 'Schwägalp', 'Wildhaus', 'Urnäsch', 'Toggenburg', 'St. Gallen', 'Altstätten', 'Gais', 'Herisau',
+      'Trogen', 'Teufen', 'Wasserauen', 'Ebenalp', 'Seealpsee', 'Hoher Kasten', 'Kronberg', 'Alpstein', 'Rheintal', 'Bodensee',
+      'Rorschach', 'Heiden', 'Speicher', 'Weissbad', 'Brülisau', 'Unterwasser', 'Churfirsten', 'Walensee', 'Rapperswil', 'Gossau']
   };
 
   return { ICON, LANES, PRODUCTS, CASES, HISTORY, ALIAS, ROLES, TEAMS, ANCHORS, BUSINESS, FLOW, PRICE, RISK };

@@ -962,7 +962,7 @@
   }
   function alias() {
     const pick = list => list[Math.floor(Math.random() * list.length)];
-    return pick(D.ALIAS.first) + ' ' + pick(D.ALIAS.second);
+    return pick(D.ALIAS.first) + ' ' + pick(D.ALIAS.second) + ' of ' + pick(D.ALIAS.place);
   }
   function enter(step) {
     const me = store.me();
