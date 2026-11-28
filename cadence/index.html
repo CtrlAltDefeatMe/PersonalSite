@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A running metronome with presets for 165, 170 and 175 steps per minute.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121a27" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Cadence">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Cadence</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml" sizes="any">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="stylesheet" href="cadence.css">
+  <script src="cadence.js" defer></script>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <img src="icon.svg" width="30" height="30" alt="">
+    <h1>Cadence</h1>
+  </header>
+
+  <section class="dial" aria-label="Tempo">
+    <button class="step" id="down" type="button" aria-label="One step per minute slower">&minus;</button>
+    <div class="readout">
+      <output id="spm" aria-live="polite">170</output>
+      <span class="unit">steps per minute</span>
+    </div>
+    <button class="step" id="up" type="button" aria-label="One step per minute faster">+</button>
+  </section>
+
+  <div class="presets" id="presets" role="group" aria-label="Presets">
+    <button type="button" data-spm="165" aria-pressed="false">165</button>
+    <button type="button" data-spm="170" aria-pressed="false">170</button>
+    <button type="button" data-spm="175" aria-pressed="false">175</button>
+  </div>
+
+  <button class="toggle" id="toggle" type="button" aria-pressed="false">Start</button>
+
+  <label class="volume">
+    <span>Tick volume</span>
+    <input type="range" id="volume" min="10" max="100" step="5" value="100">
+  </label>
+
+  <p class="status" id="status" role="status"></p>
+
+  <audio id="player" loop playsinline preload="auto"></audio>
+</main>
+</body>
+</html>

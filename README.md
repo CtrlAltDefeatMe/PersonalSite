@@ -39,3 +39,15 @@ It is not linked from the main site and is marked `noindex`.
   their comments. Both switches are off after a first install. Set the passcode once in
   the Supabase SQL editor (never in a file in this repository):
   `update public.seedee_settings set admin_code = 'your-passcode' where id = 1;`
+
+## Cadence (`/cadence/`)
+
+A running metronome for an iPhone: presets for 165, 170 and 175 steps per minute, with fine adjustment in single steps.
+It is not linked from the main site and is marked `noindex`. Open it in Safari and use Share > Add to Home Screen.
+
+- `cadence/index.html`, `cadence/cadence.css`, `cadence/cadence.js`: the page. It builds a one-minute track of ticks in
+  the browser for the chosen tempo and loops it through an `<audio>` element, because iOS keeps that playing with the
+  screen locked and stops timer-based metronomes. Tempo and volume are kept in `localStorage`.
+- `cadence/sw.js`: keeps a copy for use without signal. A published change shows on the second launch after it.
+- `cadence/manifest.json`, `cadence/icon*.png`, `cadence/icon.svg`: the home-screen name and icon.
+- Lock-screen and headphone controls: play, pause, and previous / next to move between the three presets.

@@ -1,0 +1,74 @@
+/* Cadence. Shares the main site's palette. Large targets: it is used mid-run. */
+:root {
+  --bg: #ffffff;
+  --surface: #f5f8fb;
+  --ink: #253650;
+  --blue: #516f97;
+  --muted: #586475;
+  --line: #cfd7e0;
+  --tint: #eaf1f8;
+  --stop: #9c3d33;
+  --on-stop: #ffffff;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121a27;
+    --surface: #1a2434;
+    --ink: #e7ecf3;
+    --blue: #a3bfe2;
+    --muted: #a5b0c0;
+    --line: #3a4960;
+    --tint: #223046;
+    --stop: #f0a59b;
+    --on-stop: #2a1512;
+  }
+}
+* { box-sizing: border-box; }
+html { color-scheme: light dark; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--font); -webkit-font-smoothing: antialiased; }
+h1, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+.app {
+  display: flex; flex-direction: column; gap: 18px;
+  width: min(460px, 100%); min-height: 100vh; min-height: 100dvh; margin-inline: auto;
+  padding: calc(14px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+}
+
+.top { display: flex; align-items: center; gap: 10px; }
+.top img { display: block; border-radius: 5px; }
+h1 { font-size: 20px; font-weight: 500; letter-spacing: -.4px; }
+
+/* Tempo readout with the fine-adjust buttons either side */
+.dial { flex: 1 1 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 170px; }
+.readout { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+#spm { font-size: clamp(84px, 29vw, 132px); line-height: 1; font-weight: 500; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.unit { margin-top: 6px; color: var(--muted); font-size: 15px; }
+.step { flex: none; width: 68px; height: 68px; border: 2px solid var(--line); border-radius: 50%; background: var(--surface); font-size: 34px; line-height: 1; font-weight: 400; }
+.step:active { background: var(--tint); border-color: var(--blue); }
+.step:disabled { opacity: .35; cursor: default; }
+
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.presets button { height: 76px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 28px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.presets button:active { background: var(--tint); }
+.presets button[aria-pressed="true"] { border-color: var(--ink); background: var(--tint); box-shadow: inset 0 0 0 1px var(--ink); }
+
+.toggle { height: 104px; border: 0; border-radius: 16px; background: var(--ink); color: var(--bg); font-size: 34px; font-weight: 600; letter-spacing: -.3px; }
+.toggle:active { opacity: .85; }
+.toggle[aria-pressed="true"] { background: var(--stop); color: var(--on-stop); }
+
+.volume { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 15px; }
+.volume span { flex: none; }
+.volume input { flex: 1; min-width: 0; height: 36px; margin: 0; accent-color: var(--blue); }
+
+.status { min-height: 20px; color: var(--stop); font-size: 14px; text-align: center; }
+
+@media (max-height: 600px) {
+  .app { gap: 12px; }
+  .dial { min-height: 120px; }
+  .presets button { height: 60px; }
+  .toggle { height: 80px; }
+}
