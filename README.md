@@ -49,6 +49,8 @@ It is not linked from the main site and is marked `noindex`. Open it in Safari a
   the browser for the chosen tempo and loops it through an `<audio>` element, because iOS keeps that playing with the
   screen locked and stops timer-based metronomes. Tempo, volume and the chosen tick sound are kept in `localStorage`.
   Four tick sounds, from bright to deep: Sharp, Wood, Tock and Thump. Tapping one while stopped plays a sample.
+  A drawn runner above the tempo takes one step per tick while the metronome is on; it follows the audio clock,
+  so each foot lands on its tick. The volume slider covers 40 decibels in even steps.
 - `cadence/sw.js`: keeps a copy for use without signal. It asks the network first, so a published change shows on
   the next launch.
 - `cadence/manifest.json`, `cadence/icon*.png`, `cadence/icon.svg`: the home-screen name and icon.

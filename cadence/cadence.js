@@ -21,6 +21,7 @@
     tock: { seconds: 0.11, parts: [{ f: 420, a: 0.7, decay: 0.02 }, { f: 840, a: 0.2, decay: 0.012 }, { f: 1700, a: 0.1, decay: 0.003 }] },
     thump: { seconds: 0.16, parts: [{ f: 75, from: 190, glide: 0.02, a: 0.7, decay: 0.045 }, { f: 150, from: 380, glide: 0.02, a: 0.2, decay: 0.03 }, { f: 1100, a: 0.1, decay: 0.002 }] },
   };
+  const VOLUME_RANGE_DB = 40; // the slider's bottom is this much quieter than its top
   const STORE_KEY = 'cadence.v1';
 
   const audio = document.getElementById('player');
@@ -32,14 +33,26 @@
   const status = document.getElementById('status');
   const presetButtons = [...document.querySelectorAll('#presets button')];
   const soundButtons = [...document.querySelectorAll('#sounds button')];
+  const figure = {
+    ground: document.getElementById('ground'),
+    torso: document.getElementById('torso'),
+    head: document.getElementById('head'),
+    legNear: document.getElementById('leg-near'),
+    legFar: document.getElementById('leg-far'),
+    armNear: document.getElementById('arm-near'),
+    armFar: document.getElementById('arm-far'),
+  };
 
   let spm = DEFAULT_SPM;
-  let level = 100;           // tick volume, 10 to 100
+  let level = 100;           // tick volume, 0 to 100
   let sound = DEFAULT_SOUND;
   let running = false;       // what the runner asked for, which the audio element then follows
   let swapping = false;      // true while a new loop replaces the one that is playing
   let loadedKey = '';
   let loadedUrl = null;
+  let beats = 0;             // steps since Start, as drawn; kept in time with the audio
+  let lastFrame = 0;
+  let frame = 0;
   let preview = null;        // a second player, used only to sample a sound while stopped
   let previewUrl = null;
 
@@ -48,7 +61,7 @@
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
     if (Number.isFinite(saved.spm)) spm = clamp(Math.round(saved.spm), MIN_SPM, MAX_SPM);
-    if (Number.isFinite(saved.level)) level = clamp(Math.round(saved.level), 10, 100);
+    if (Number.isFinite(saved.level)) level = clamp(Math.round(saved.level), 0, 100);
     if (Object.prototype.hasOwnProperty.call(SOUNDS, saved.sound)) sound = saved.sound;
   } catch (e) { /* private browsing, or nothing saved yet */ }
 
@@ -96,7 +109,8 @@
     return new Blob([buffer], { type: 'audio/wav' });
   }
 
-  const gain = () => (level / 100) ** 2;
+  // Equal slider movements give equal changes in loudness (decibels), so the whole travel is useful.
+  const gain = () => 10 ** ((level - 100) / 100 * VOLUME_RANGE_DB / 20);
 
   // Exactly `spm` evenly spaced ticks in LOOP_SECONDS.
   function buildLoop() {
@@ -118,6 +132,107 @@
     if (started && started.catch) started.catch(() => { /* a sample is not essential */ });
   }
 
+  // ---- The runner ----
+  // One leg's stride: [point in the stride, thigh angle, knee bend], in degrees. The foot lands at 0,
+  // leaves the ground near 0.36 and swings through for the rest. The other leg runs half a stride behind.
+  const GAIT = [[0, 31, 15], [0.12, 8, 35], [0.25, -14, 22], [0.36, -33, 12], [0.5, -20, 85],
+    [0.64, 15, 115], [0.78, 48, 85], [0.9, 47, 38], [1, 31, 15]];
+  const TOE_OFF = 0.36;
+  const BODY = { x: 80, ground: 109, thigh: 25, shank: 25, foot: 8, torso: 31, lean: 12, neck: 13, upperArm: 16, forearm: 15 };
+  const STRIDE = 147;        // how far the ground slides per stride, in drawing units: matches the planted foot, and is a whole number of dashes
+  const REST_POSE = 0.13;
+
+  // Angles are measured from straight down, positive towards the direction of travel.
+  const reach = (from, degrees, length) => {
+    const r = degrees * Math.PI / 180;
+    return { x: from.x + length * Math.sin(r), y: from.y + length * Math.cos(r) };
+  };
+
+  // Smooth curve through the GAIT points.
+  function gait(phase) {
+    const n = GAIT.length - 1;
+    let i = 0;
+    while (i < n - 1 && phase >= GAIT[i + 1][0]) i++;
+    const a = GAIT[i];
+    const b = GAIT[i + 1];
+    const before = i === 0 ? GAIT[n - 1] : GAIT[i - 1];
+    const after = i + 1 === n ? GAIT[1] : GAIT[i + 2];
+    const xBefore = i === 0 ? before[0] - 1 : before[0];
+    const xAfter = i + 1 === n ? after[0] + 1 : after[0];
+    const h = b[0] - a[0];
+    const t = (phase - a[0]) / h;
+    return [1, 2].map((k) => {
+      const m0 = (b[k] - before[k]) / (b[0] - xBefore);
+      const m1 = (after[k] - a[k]) / (xAfter - a[0]);
+      return (2 * t ** 3 - 3 * t ** 2 + 1) * a[k] + (t ** 3 - 2 * t ** 2 + t) * h * m0
+        + (-2 * t ** 3 + 3 * t ** 2) * b[k] + (t ** 3 - t ** 2) * h * m1;
+    });
+  }
+
+  function leg(hip, phase) {
+    const [thigh, bend] = gait(phase);
+    const knee = reach(hip, thigh, BODY.thigh);
+    const ankle = reach(knee, thigh - bend, BODY.shank);
+    const toe = reach(ankle, thigh - bend + 80, BODY.foot);
+    return [hip, knee, ankle, toe];
+  }
+
+  // An arm swings with the opposite leg, and bends more as it comes forward.
+  function arm(shoulder, oppositeLegPhase) {
+    const swing = Math.cos(2 * Math.PI * (oppositeLegPhase - 0.82));
+    const upper = -4 + 42 * swing;
+    const elbow = reach(shoulder, upper, BODY.upperArm);
+    return [shoulder, elbow, reach(elbow, upper + 85 + 20 * swing, BODY.forearm)];
+  }
+
+  const plot = (el, points) => el.setAttribute('points', points.map((p) => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' '));
+
+  // `stride` runs 0 to 1 over two steps: the near foot lands at 0, the far foot at 0.5.
+  function drawRunner(stride) {
+    const origin = { x: BODY.x, y: 0 };
+    const nearPhase = stride % 1;
+    const farPhase = (stride + 0.5) % 1;
+    const drop = Math.max(...leg(origin, nearPhase).concat(leg(origin, farPhase)).map((p) => p.y));
+    const sinceLanding = stride % 0.5;
+    const flight = sinceLanding > TOE_OFF ? 3 * Math.sin(Math.PI * (sinceLanding - TOE_OFF) / (0.5 - TOE_OFF)) : 0;
+    const hip = { x: BODY.x, y: BODY.ground - drop - flight };
+    const shoulder = reach(hip, 180 - BODY.lean, BODY.torso);
+    const head = reach(shoulder, 180 - BODY.lean, BODY.neck);
+    plot(figure.legNear, leg(hip, nearPhase));
+    plot(figure.legFar, leg(hip, farPhase));
+    plot(figure.armNear, arm(shoulder, farPhase));
+    plot(figure.armFar, arm(shoulder, nearPhase));
+    plot(figure.torso, [hip, shoulder]);
+    figure.head.setAttribute('cx', head.x.toFixed(1));
+    figure.head.setAttribute('cy', head.y.toFixed(1));
+    figure.ground.style.strokeDashoffset = ((stride * STRIDE) % 21).toFixed(1);
+  }
+
+  // Advance by the clock for smooth motion, and nudge towards the audio position so each foot lands on its tick.
+  function animate(now) {
+    frame = requestAnimationFrame(animate);
+    const elapsed = Math.min(0.1, (now - lastFrame) / 1000);
+    lastFrame = now;
+    beats += elapsed * spm / 60;
+    if (!audio.paused && audio.readyState >= 2) {
+      let error = (audio.currentTime * spm / 60) % 1 - beats % 1;
+      error -= Math.round(error);
+      beats += Math.abs(error) > 0.2 ? error : error * 0.15;
+    }
+    drawRunner((beats / 2) % 1);
+  }
+
+  function syncRunner() {
+    if (running && !frame) {
+      lastFrame = performance.now();
+      frame = requestAnimationFrame(animate);
+    } else if (!running) {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      drawRunner(REST_POSE);
+    }
+  }
+
   // iOS ignores audio.volume, so the volume is baked into the samples instead.
   function load() {
     const key = spm + ':' + level + ':' + sound;
@@ -131,6 +246,7 @@
 
   function play() {
     status.textContent = '';
+    beats = 0;
     load();
     try { audio.currentTime = 0; } catch (e) { /* not ready yet; a fresh loop starts at zero anyway */ }
     const started = audio.play();
@@ -179,6 +295,7 @@
     toggle.textContent = running ? 'Stop' : 'Start';
     toggle.setAttribute('aria-pressed', String(running));
     document.title = running ? spm + ' · Cadence' : 'Cadence';
+    syncRunner();
     if ('mediaSession' in navigator) {
       try {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -197,7 +314,7 @@
   presetButtons.forEach((b) => b.addEventListener('click', () => setTempo(Number(b.dataset.spm))));
   soundButtons.forEach((b) => b.addEventListener('click', () => setSound(b.dataset.sound)));
   volume.addEventListener('change', () => {
-    level = clamp(Number(volume.value), 10, 100);
+    level = clamp(Number(volume.value), 0, 100);
     save();
     if (running) { swapping = true; play(); } else playPreview();
   });
