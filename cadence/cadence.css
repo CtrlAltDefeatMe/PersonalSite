@@ -60,6 +60,11 @@ h1 { font-size: 20px; font-weight: 500; letter-spacing: -.4px; }
 .toggle:active { opacity: .85; }
 .toggle[aria-pressed="true"] { background: var(--stop); color: var(--on-stop); }
 
+.sounds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sounds button { height: 48px; padding: 0; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 16px; font-weight: 500; }
+.sounds button:active { background: var(--tint); }
+.sounds button[aria-pressed="true"] { border-color: var(--ink); background: var(--tint); box-shadow: inset 0 0 0 1px var(--ink); }
+
 .volume { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: 15px; }
 .volume span { flex: none; }
 .volume input { flex: 1; min-width: 0; height: 36px; margin: 0; accent-color: var(--blue); }
@@ -71,4 +76,5 @@ h1 { font-size: 20px; font-weight: 500; letter-spacing: -.4px; }
   .dial { min-height: 120px; }
   .presets button { height: 60px; }
   .toggle { height: 80px; }
+  .sounds button { height: 42px; }
 }
