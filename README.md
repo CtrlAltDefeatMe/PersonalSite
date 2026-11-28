@@ -47,7 +47,9 @@ It is not linked from the main site and is marked `noindex`. Open it in Safari a
 
 - `cadence/index.html`, `cadence/cadence.css`, `cadence/cadence.js`: the page. It builds a one-minute track of ticks in
   the browser for the chosen tempo and loops it through an `<audio>` element, because iOS keeps that playing with the
-  screen locked and stops timer-based metronomes. Tempo and volume are kept in `localStorage`.
-- `cadence/sw.js`: keeps a copy for use without signal. A published change shows on the second launch after it.
+  screen locked and stops timer-based metronomes. Tempo, volume and the chosen tick sound are kept in `localStorage`.
+  Four tick sounds, from bright to deep: Sharp, Wood, Tock and Thump. Tapping one while stopped plays a sample.
+- `cadence/sw.js`: keeps a copy for use without signal. It asks the network first, so a published change shows on
+  the next launch.
 - `cadence/manifest.json`, `cadence/icon*.png`, `cadence/icon.svg`: the home-screen name and icon.
 - Lock-screen and headphone controls: play, pause, and previous / next to move between the three presets.
