@@ -26,14 +26,26 @@
     <h1>Cadence</h1>
   </header>
 
-  <section class="dial" aria-label="Tempo">
-    <button class="step" id="down" type="button" aria-label="One step per minute slower">&minus;</button>
-    <div class="readout">
-      <output id="spm" aria-live="polite">170</output>
-      <span class="unit">steps per minute</span>
-    </div>
-    <button class="step" id="up" type="button" aria-label="One step per minute faster">+</button>
-  </section>
+  <div class="stage">
+    <svg class="runner" viewBox="0 0 160 118" aria-hidden="true" focusable="false">
+      <line class="ground" id="ground" x1="-420" y1="114" x2="580" y2="114"/>
+      <polyline class="limb far" id="arm-far"/>
+      <polyline class="limb far" id="leg-far"/>
+      <polyline class="limb body" id="torso"/>
+      <circle class="head" id="head" r="8.5"/>
+      <polyline class="limb" id="leg-near"/>
+      <polyline class="limb" id="arm-near"/>
+    </svg>
+
+    <section class="dial" aria-label="Tempo">
+      <button class="step" id="down" type="button" aria-label="One step per minute slower">&minus;</button>
+      <div class="readout">
+        <output id="spm" aria-live="polite">170</output>
+        <span class="unit">steps per minute</span>
+      </div>
+      <button class="step" id="up" type="button" aria-label="One step per minute faster">+</button>
+    </section>
+  </div>
 
   <div class="presets" id="presets" role="group" aria-label="Presets">
     <button type="button" data-spm="165" aria-pressed="false">165</button>
@@ -52,7 +64,7 @@
 
   <label class="volume">
     <span>Tick volume</span>
-    <input type="range" id="volume" min="10" max="100" step="5" value="100">
+    <input type="range" id="volume" min="0" max="100" step="5" value="100">
   </label>
 
   <p class="status" id="status" role="status"></p>
