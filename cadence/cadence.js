@@ -30,6 +30,7 @@
   const down = document.getElementById('down');
   const up = document.getElementById('up');
   const volume = document.getElementById('volume');
+  const volumeValue = document.getElementById('volume-value');
   const status = document.getElementById('status');
   const presetButtons = [...document.querySelectorAll('#presets button')];
   const soundButtons = [...document.querySelectorAll('#sounds button')];
@@ -53,6 +54,7 @@
   let beats = 0;             // steps since Start, as drawn; kept in time with the audio
   let lastFrame = 0;
   let frame = 0;
+  let volumeTimer = 0;
   let preview = null;        // a second player, used only to sample a sound while stopped
   let previewUrl = null;
 
@@ -313,11 +315,27 @@
   up.addEventListener('click', () => setTempo(spm + 1));
   presetButtons.forEach((b) => b.addEventListener('click', () => setTempo(Number(b.dataset.spm))));
   soundButtons.forEach((b) => b.addEventListener('click', () => setSound(b.dataset.sound)));
-  volume.addEventListener('change', () => {
-    level = clamp(Number(volume.value), 0, 100);
-    save();
-    if (running) { swapping = true; play(); } else playPreview();
-  });
+  // The slider is read as it moves, not only on release: some iPhones never send the release ("change") event.
+  // The new level is applied once the thumb has rested for a moment, so dragging does not restart the ticks constantly.
+  function applyVolume() {
+    clearTimeout(volumeTimer);
+    volumeTimer = 0;
+    const key = spm + ':' + level + ':' + sound;
+    if (running) { if (key !== loadedKey) { swapping = true; play(); } } else playPreview();
+  }
+  function readVolume(settleMs) {
+    const next = clamp(Number(volume.value), 0, 100);
+    const changed = next !== level;
+    level = next;
+    volumeValue.textContent = level + '%';
+    if (changed) save();
+    if (changed || volumeTimer) {
+      clearTimeout(volumeTimer);
+      volumeTimer = setTimeout(applyVolume, settleMs);
+    }
+  }
+  volume.addEventListener('input', () => readVolume(180));
+  volume.addEventListener('change', () => readVolume(0));
 
   // Follow the audio element, so a phone call, the lock screen or a headphone button keeps the page in step.
   audio.addEventListener('playing', () => { swapping = false; if (!running) { running = true; render(); } });
@@ -343,6 +361,7 @@
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* not supported */ }
 
   volume.value = level;
+  volumeValue.textContent = level + '%';
   render();
 
   if ('serviceWorker' in navigator) {
